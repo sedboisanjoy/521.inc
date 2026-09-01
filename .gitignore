@@ -1,0 +1,17 @@
+# Go
+/backend/backend
+/chaincode/employment-passport
+*.test
+
+# Node / web
+node_modules/
+/web/dist/
+/web/.vite/
+
+# Fabric artifacts
+/network/organizations/
+*.log
+
+# Env
+.env
+.env.local

@@ -1,0 +1,10 @@
+{
+  "name": "Employment Passport",
+  "short_name": "EP Wallet",
+  "description": "Self-sovereign employment credential wallet",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1a2b",
+  "theme_color": "#1f3b5c",
+  "icons": []
+}

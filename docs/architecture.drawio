@@ -1,0 +1,99 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Employment Passport Architecture" id="emppass-arch">
+    <mxGraphModel dx="1040" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="L1" value="Layer 1 — Application  (React + TypeScript + Vite PWA)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;fontStyle=1;fontSize=13;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1020" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="L2" value="Layer 2 — API Gateway  (Go + Chi)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;fontStyle=1;fontSize=13;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="1020" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="L3" value="Layer 3 — Core Services + Off-Chain Vault  (Go)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;fontStyle=1;fontSize=13;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="1020" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="L4" value="Layer 4 — Blockchain: Hyperledger Fabric 2.5  (permissioned)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;fontStyle=1;fontSize=13;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="590" width="1020" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="L5" value="Layer 5 — Public Anchoring" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;fontStyle=1;fontSize=13;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="850" width="1020" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="wallet" value="Worker Wallet&#10;(keys + consent)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="issuer" value="Issuer Portal&#10;(BMET / TTC / Bank)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="320" y="80" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="verifier" value="Verifier Portal&#10;(employer / bank)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="560" y="80" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="admin" value="Admin Dashboard&#10;(BMET analytics)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway" value="REST API  ·  Auth (JWT / DID)  ·  Validation  ·  Rate limiting" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="225" width="940" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="svc1" value="Credential&#10;Issuance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="70" y="360" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc2" value="Verification&#10;Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="258" y="360" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc3" value="DID &amp; Identity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="446" y="360" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc4" value="Off-Chain&#10;Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="634" y="360" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="svc5" value="Analytics &amp;&#10;Reporting" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="822" y="360" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="libs" value="Libraries:  Aries Framework Go — DID · VC · BBS+ selective disclosure   |   fabric-gateway (Fabric client)" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#82b366;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="70" y="425" width="546" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" value="PostgreSQL&#10;(encrypted PII vault)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="640" y="425" width="160" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="ipfs" value="IPFS / Kubo&#10;(encrypted blobs:&#10;PDFs, photos)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="830" y="425" width="160" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="org1" value="BMET&#10;(Peer + MSP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="70" y="630" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="org2" value="BAIRA / Agencies&#10;(Peer + MSP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="300" y="630" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="org3" value="Bank&#10;(Peer + MSP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="530" y="630" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="orderer" value="Orderer&#10;(Raft consensus)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="760" y="630" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="channels" value="Channels:  anchor-channel  ·  recruitment-channel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="70" y="710" width="430" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="chaincode" value="Chaincode (Go):  RegisterDID · IssueCredential · VerifyAnchor · RevokeCredential · RecordDisclosure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="530" y="710" width="430" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="merkle" value="Daily Merkle-Root Bridge&#10;(Go cron job)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="885" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pubchain" value="Public Blockchain — Ethereum Sepolia / Polygon testnet&#10;(one 32-byte root per day, no personal data)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="560" y="885" width="460" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="HTTPS / JSON" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="wallet" target="gateway"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="issuer" target="gateway"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="verifier" target="gateway"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="admin" target="gateway"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" value="internal calls" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="gateway" target="svc3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" value="encrypted write" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="svc4" target="pg"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="svc4" target="ipfs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" value="gRPC / TLS  (hash only)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeWidth=2;" edge="1" parent="1" source="svc1" target="chaincode"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" value="VerifyAnchor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="svc2" target="chaincode"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" value="daily hashes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="channels" target="merkle"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" value="anchor 32-byte root" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="merkle" target="pubchain"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
