@@ -25,6 +25,18 @@ type AgencyStanding struct {
 	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
+// ContractResult mirrors the chaincode GetContract return shape (UC3).
+type ContractResult struct {
+	Found          bool   `json:"found"`
+	ContractHash   string `json:"contractHash"`
+	WorkerDID      string `json:"workerDID,omitempty"`
+	EmployerDID    string `json:"employerDID,omitempty"`
+	Status         string `json:"status"`
+	CreatedAt      string `json:"createdAt,omitempty"`
+	WorkerSignedAt string `json:"workerSignedAt,omitempty"`
+	ApprovedAt     string `json:"approvedAt,omitempty"`
+}
+
 // Ledger is the set of chaincode operations the backend needs. Writes map to
 // Fabric SubmitTransaction; reads map to EvaluateTransaction.
 type Ledger interface {
@@ -36,5 +48,9 @@ type Ledger interface {
 	SubmitCorroboration(credHash, sourceDID, evidenceHash string) error
 	UpdateAgencyStanding(agencyDID string, delta int, evidenceHash string) error
 	GetAgencyStanding(agencyDID string) (*AgencyStanding, error)
+	CreateContract(contractHash, workerDID, employerDID string) error
+	SignContract(contractHash, workerDID string) error
+	ApproveContract(contractHash, employerDID string) error
+	GetContract(contractHash string) (*ContractResult, error)
 	Close() error
 }

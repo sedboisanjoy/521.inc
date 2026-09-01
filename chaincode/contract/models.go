@@ -6,12 +6,22 @@ const (
 	StatusRevoked = "REVOKED"
 )
 
+// Contract lifecycle status values (UC3). A contract is anchored on draft,
+// countersigned by the worker, then approved by the employer — each step
+// immutable, which is what defeats contract substitution.
+const (
+	StatusPending      = "PENDING"       // drafted, awaiting the worker
+	StatusWorkerSigned = "WORKER_SIGNED" // worker signed, awaiting the employer
+	StatusSigned       = "SIGNED"        // employer approved; complete
+)
+
 // Composite-key object types used to partition the world state.
 const (
 	objDID        = "did"
 	objCredential = "cred"
 	objAgency     = "agency"
 	objDisclosure = "disc"
+	objContract   = "contract"
 )
 
 // DIDRecord anchors a Decentralised Identifier on-chain. Only a pointer/hash is
@@ -78,6 +88,35 @@ type DisclosureEvent struct {
 	VerifierDID string `json:"verifierDID"`
 	At          string `json:"at"`
 	By          string `json:"by"`
+}
+
+// Contract is the on-chain anchor for an employment contract (UC3). It holds
+// only the salted hash of the contract body, the two parties' DIDs, the
+// signing status and timestamps — never the salary, position or PDF, which
+// live off-chain (Golden Rule).
+type Contract struct {
+	DocType        string `json:"docType"`
+	ContractHash   string `json:"contractHash"`
+	WorkerDID      string `json:"workerDID"`
+	EmployerDID    string `json:"employerDID"`
+	Status         string `json:"status"`
+	CreatedAt      string `json:"createdAt"`
+	CreatedBy      string `json:"createdBy"` // MSP ID
+	WorkerSignedAt string `json:"workerSignedAt,omitempty"`
+	ApprovedAt     string `json:"approvedAt,omitempty"`
+}
+
+// ContractResult is the read shape returned to clients (mirrors VerifyResult):
+// Found=false for an unknown hash rather than an error.
+type ContractResult struct {
+	Found          bool   `json:"found"`
+	ContractHash   string `json:"contractHash"`
+	WorkerDID      string `json:"workerDID,omitempty"`
+	EmployerDID    string `json:"employerDID,omitempty"`
+	Status         string `json:"status"`
+	CreatedAt      string `json:"createdAt,omitempty"`
+	WorkerSignedAt string `json:"workerSignedAt,omitempty"`
+	ApprovedAt     string `json:"approvedAt,omitempty"`
 }
 
 // VerifyResult is the aggregated answer returned to a verifier: the credential

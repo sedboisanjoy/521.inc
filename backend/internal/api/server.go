@@ -34,6 +34,7 @@ func (s *Server) Router() http.Handler {
 	}))
 
 	r.Get("/api/health", s.health)
+	r.Get("/api/workers", s.listWorkers)                 // directory for issuers
 	r.Post("/api/workers", s.registerWorker)             // UC1
 	r.Post("/api/credentials", s.issueCredential)        // UC2 / UC3 / UC5
 	r.Get("/api/verify/{credHash}", s.verify)            // UC4
@@ -44,6 +45,11 @@ func (s *Server) Router() http.Handler {
 	r.Get("/api/agency-standing/{did}", s.getStanding)   // UC7 dashboard
 	r.Get("/api/wallet/{subjectDID}", s.wallet)          // worker wallet view
 	r.Get("/api/credentials/{credHash}", s.getCredential) // full off-chain body
+	r.Post("/api/contracts", s.createContract)           // UC3 draft
+	r.Post("/api/contracts/sign", s.signContract)        // UC3 worker signs
+	r.Post("/api/contracts/approve", s.approveContract)  // UC3 employer approves
+	r.Get("/api/contracts/by/{did}", s.listContracts)    // inbox / employer list
+	r.Get("/api/contracts/{hash}", s.getContract)        // anchor + off-chain body
 	return r
 }
 
@@ -67,6 +73,41 @@ func readJSON(r *http.Request, v interface{}) error {
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "time": time.Now().UTC().Format(time.RFC3339)})
+}
+
+// listWorkers returns the worker directory so an issuer (training center) can
+// pick who to certify instead of pasting a raw DID. The NID is masked — the
+// directory reveals just enough to identify a person, not their full PII.
+func (s *Server) listWorkers(w http.ResponseWriter, r *http.Request) {
+	type dirEntry struct {
+		WorkerID  string `json:"workerId"`
+		DID       string `json:"did"`
+		Name      string `json:"name"`
+		NIDMasked string `json:"nidMasked"`
+		Address   string `json:"address"`
+	}
+	ws := s.S.ListWorkers()
+	out := make([]dirEntry, 0, len(ws))
+	for _, wk := range ws {
+		out = append(out, dirEntry{
+			WorkerID: wk.WorkerID, DID: wk.DID, Name: wk.Name,
+			NIDMasked: maskNID(wk.NID), Address: wk.Address,
+		})
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// maskNID keeps only the last 4 digits visible (e.g. "******3456").
+func maskNID(nid string) string {
+	if len(nid) <= 4 {
+		return nid
+	}
+	masked := make([]byte, len(nid))
+	for i := range masked {
+		masked[i] = '*'
+	}
+	copy(masked[len(nid)-4:], nid[len(nid)-4:])
+	return string(masked)
 }
 
 type registerWorkerReq struct {
@@ -327,4 +368,115 @@ func (s *Server) getCredential(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, cred)
+}
+
+// --- UC3 contract lifecycle ------------------------------------------------
+
+type createContractReq struct {
+	WorkerDID   string `json:"workerDID"`
+	EmployerDID string `json:"employerDID"`
+	Employer    string `json:"employer"`
+	Position    string `json:"position"`
+	Salary      int    `json:"salary"`
+	Currency    string `json:"currency"`
+	Term        string `json:"term"`
+	JobID       string `json:"jobId"`
+}
+
+func (s *Server) createContract(w http.ResponseWriter, r *http.Request) {
+	var req createContractReq
+	if err := readJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if req.WorkerDID == "" || req.EmployerDID == "" || req.Position == "" {
+		writeErr(w, http.StatusBadRequest, fmt.Errorf("workerDID, employerDID and position are required"))
+		return
+	}
+	// Off-chain body → salted on-chain hash (same pattern as issueCredential).
+	salt, err := did.Salt()
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	body, _ := json.Marshal(struct {
+		WorkerDID, EmployerDID, Position, Currency, Term string
+		Salary                                           int
+	}{req.WorkerDID, req.EmployerDID, req.Position, req.Currency, req.Term, req.Salary})
+	contractHash := did.SaltedHash(salt, body)
+
+	if err := s.L.CreateContract(contractHash, req.WorkerDID, req.EmployerDID); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	s.S.PutContract(&store.Contract{
+		ContractHash: contractHash, Salt: salt, WorkerDID: req.WorkerDID,
+		EmployerDID: req.EmployerDID, Employer: req.Employer, Position: req.Position,
+		Salary: req.Salary, Currency: req.Currency, Term: req.Term, JobID: req.JobID,
+	})
+	writeJSON(w, http.StatusCreated, map[string]string{"contractHash": contractHash, "status": "PENDING"})
+}
+
+type signContractReq struct {
+	ContractHash string `json:"contractHash"`
+	WorkerDID    string `json:"workerDID"`
+}
+
+func (s *Server) signContract(w http.ResponseWriter, r *http.Request) {
+	var req signContractReq
+	if err := readJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.L.SignContract(req.ContractHash, req.WorkerDID); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "WORKER_SIGNED", "contractHash": req.ContractHash})
+}
+
+type approveContractReq struct {
+	ContractHash string `json:"contractHash"`
+	EmployerDID  string `json:"employerDID"`
+}
+
+func (s *Server) approveContract(w http.ResponseWriter, r *http.Request) {
+	var req approveContractReq
+	if err := readJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.L.ApproveContract(req.ContractHash, req.EmployerDID); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "SIGNED", "contractHash": req.ContractHash})
+}
+
+// contractEntry is one contract joined with its live on-chain status.
+type contractEntry struct {
+	*store.Contract
+	Anchor *ledger.ContractResult `json:"anchor"`
+}
+
+func (s *Server) getContract(w http.ResponseWriter, r *http.Request) {
+	hash := chi.URLParam(r, "hash")
+	body, ok := s.S.GetContract(hash)
+	if !ok {
+		writeErr(w, http.StatusNotFound, fmt.Errorf("contract not found"))
+		return
+	}
+	anchor, _ := s.L.GetContract(hash)
+	writeJSON(w, http.StatusOK, contractEntry{Contract: body, Anchor: anchor})
+}
+
+func (s *Server) listContracts(w http.ResponseWriter, r *http.Request) {
+	did := chi.URLParam(r, "did")
+	var out []contractEntry
+	for _, h := range s.S.ContractsOf(did) {
+		body, _ := s.S.GetContract(h)
+		anchor, _ := s.L.GetContract(h)
+		out = append(out, contractEntry{Contract: body, Anchor: anchor})
+	}
+	writeJSON(w, http.StatusOK, out)
 }

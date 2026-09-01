@@ -170,6 +170,30 @@ func (f *Fabric) GetAgencyStanding(agencyDID string) (*AgencyStanding, error) {
 	return &res, nil
 }
 
+func (f *Fabric) CreateContract(contractHash, workerDID, employerDID string) error {
+	return f.submit("CreateContract", contractHash, workerDID, employerDID)
+}
+
+func (f *Fabric) SignContract(contractHash, workerDID string) error {
+	return f.submit("SignContract", contractHash, workerDID)
+}
+
+func (f *Fabric) ApproveContract(contractHash, employerDID string) error {
+	return f.submit("ApproveContract", contractHash, employerDID)
+}
+
+func (f *Fabric) GetContract(contractHash string) (*ContractResult, error) {
+	data, err := f.evaluate("GetContract", contractHash)
+	if err != nil {
+		return nil, err
+	}
+	var res ContractResult
+	if err := json.Unmarshal(data, &res); err != nil {
+		return nil, fmt.Errorf("decode GetContract: %w", err)
+	}
+	return &res, nil
+}
+
 func (f *Fabric) Close() error {
 	if f.gw != nil {
 		f.gw.Close()

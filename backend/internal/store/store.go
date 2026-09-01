@@ -6,7 +6,10 @@
 // worker PII, contract PDFs. On-chain we keep only the salted hash.
 package store
 
-import "sync"
+import (
+	"sort"
+	"sync"
+)
 
 // Worker is the off-chain PII record for a registered worker.
 type Worker struct {
@@ -29,6 +32,22 @@ type Credential struct {
 	Claims     map[string]interface{} `json:"claims"`
 }
 
+// Contract is the full off-chain employment-contract body (UC3). The on-chain
+// anchor references it only by ContractHash; the salary and terms never touch
+// the ledger.
+type Contract struct {
+	ContractHash string `json:"contractHash"`
+	Salt         string `json:"-"`
+	WorkerDID    string `json:"workerDID"`
+	EmployerDID  string `json:"employerDID"`
+	Employer     string `json:"employer"` // display name
+	Position     string `json:"position"`
+	Salary       int    `json:"salary"`
+	Currency     string `json:"currency"`
+	Term         string `json:"term"`
+	JobID        string `json:"jobId,omitempty"`
+}
+
 // Store is the off-chain vault API.
 type Store struct {
 	mu       sync.RWMutex
@@ -36,16 +55,20 @@ type Store struct {
 	byDID    map[string]*Worker     // by DID
 	creds    map[string]*Credential // by credHash
 	credsBySubject map[string][]string // subjectDID -> credHashes (wallet view)
+	contracts      map[string]*Contract // by contractHash
+	contractsByParty map[string][]string // DID -> contractHashes (worker or employer)
 	seq      int
 }
 
 // New returns an empty in-memory vault.
 func New() *Store {
 	return &Store{
-		workers:        map[string]*Worker{},
-		byDID:          map[string]*Worker{},
-		creds:          map[string]*Credential{},
-		credsBySubject: map[string][]string{},
+		workers:          map[string]*Worker{},
+		byDID:            map[string]*Worker{},
+		creds:            map[string]*Credential{},
+		credsBySubject:   map[string][]string{},
+		contracts:        map[string]*Contract{},
+		contractsByParty: map[string][]string{},
 	}
 }
 
@@ -89,6 +112,19 @@ func (s *Store) GetWorker(id string) (*Worker, bool) {
 	return w, ok
 }
 
+// ListWorkers returns every registered worker, ordered by workerID (i.e. the
+// order they were registered) so a directory view is stable.
+func (s *Store) ListWorkers() []*Worker {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]*Worker, 0, len(s.workers))
+	for _, w := range s.workers {
+		out = append(out, w)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].WorkerID < out[j].WorkerID })
+	return out
+}
+
 // PutCredential stores a full off-chain credential body.
 func (s *Store) PutCredential(c *Credential) {
 	s.mu.Lock()
@@ -111,5 +147,34 @@ func (s *Store) WalletOf(subjectDID string) []string {
 	defer s.mu.RUnlock()
 	out := make([]string, len(s.credsBySubject[subjectDID]))
 	copy(out, s.credsBySubject[subjectDID])
+	return out
+}
+
+// PutContract stores an off-chain contract body, indexed by both parties so it
+// surfaces in the worker's inbox and the employer's list.
+func (s *Store) PutContract(c *Contract) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.contracts[c.ContractHash] = c
+	s.contractsByParty[c.WorkerDID] = append(s.contractsByParty[c.WorkerDID], c.ContractHash)
+	if c.EmployerDID != c.WorkerDID {
+		s.contractsByParty[c.EmployerDID] = append(s.contractsByParty[c.EmployerDID], c.ContractHash)
+	}
+}
+
+// GetContract returns a full off-chain contract body by hash.
+func (s *Store) GetContract(contractHash string) (*Contract, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	c, ok := s.contracts[contractHash]
+	return c, ok
+}
+
+// ContractsOf returns all contract hashes where the DID is worker or employer.
+func (s *Store) ContractsOf(did string) []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]string, len(s.contractsByParty[did]))
+	copy(out, s.contractsByParty[did])
 	return out
 }

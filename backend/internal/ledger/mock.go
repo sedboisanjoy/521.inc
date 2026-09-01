@@ -14,6 +14,17 @@ type Mock struct {
 	creds     map[string]*credential
 	dids      map[string]bool
 	standings map[string]int
+	contracts map[string]*contract
+}
+
+type contract struct {
+	ContractHash   string
+	WorkerDID      string
+	EmployerDID    string
+	Status         string
+	CreatedAt      string
+	WorkerSignedAt string
+	ApprovedAt     string
 }
 
 type credential struct {
@@ -36,6 +47,7 @@ func NewMock() *Mock {
 		creds:     map[string]*credential{},
 		dids:      map[string]bool{},
 		standings: map[string]int{},
+		contracts: map[string]*contract{},
 	}
 }
 
@@ -148,6 +160,72 @@ func (m *Mock) GetAgencyStanding(agencyDID string) (*AgencyStanding, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return &AgencyStanding{AgencyDID: agencyDID, Score: m.standings[agencyDID], UpdatedAt: now()}, nil
+}
+
+func (m *Mock) CreateContract(contractHash, workerDID, employerDID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if contractHash == "" || workerDID == "" || employerDID == "" {
+		return fmt.Errorf("contractHash, workerDID and employerDID are required")
+	}
+	if _, ok := m.contracts[contractHash]; ok {
+		return fmt.Errorf("contract %s already anchored", contractHash)
+	}
+	m.contracts[contractHash] = &contract{
+		ContractHash: contractHash, WorkerDID: workerDID, EmployerDID: employerDID,
+		Status: "PENDING", CreatedAt: now(),
+	}
+	return nil
+}
+
+func (m *Mock) SignContract(contractHash, workerDID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	c, ok := m.contracts[contractHash]
+	if !ok {
+		return fmt.Errorf("contract %s does not exist", contractHash)
+	}
+	if c.Status != "PENDING" {
+		return fmt.Errorf("contract %s is not awaiting the worker (status %s)", contractHash, c.Status)
+	}
+	if c.WorkerDID != workerDID {
+		return fmt.Errorf("contract %s is not addressed to worker %s", contractHash, workerDID)
+	}
+	c.Status = "WORKER_SIGNED"
+	c.WorkerSignedAt = now()
+	return nil
+}
+
+func (m *Mock) ApproveContract(contractHash, employerDID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	c, ok := m.contracts[contractHash]
+	if !ok {
+		return fmt.Errorf("contract %s does not exist", contractHash)
+	}
+	if c.Status != "WORKER_SIGNED" {
+		return fmt.Errorf("contract %s is not awaiting employer approval (status %s)", contractHash, c.Status)
+	}
+	if c.EmployerDID != employerDID {
+		return fmt.Errorf("contract %s does not belong to employer %s", contractHash, employerDID)
+	}
+	c.Status = "SIGNED"
+	c.ApprovedAt = now()
+	return nil
+}
+
+func (m *Mock) GetContract(contractHash string) (*ContractResult, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	c, ok := m.contracts[contractHash]
+	if !ok {
+		return &ContractResult{Found: false, ContractHash: contractHash, Status: "UNKNOWN"}, nil
+	}
+	return &ContractResult{
+		Found: true, ContractHash: c.ContractHash, WorkerDID: c.WorkerDID,
+		EmployerDID: c.EmployerDID, Status: c.Status, CreatedAt: c.CreatedAt,
+		WorkerSignedAt: c.WorkerSignedAt, ApprovedAt: c.ApprovedAt,
+	}, nil
 }
 
 func (m *Mock) Close() error { return nil }

@@ -149,6 +149,68 @@ func TestCorroboration(t *testing.T) {
 	}
 }
 
+func TestContractLifecycle(t *testing.T) {
+	c := &EmploymentContract{}
+	stub := newEnv()
+	const (
+		hash     = "contract_001"
+		worker   = "did:key:worker1"
+		employer = "did:key:employer"
+	)
+
+	if err := c.CreateContract(ctx(stub, "AgencyMSP"), hash, worker, employer); err != nil {
+		t.Fatalf("CreateContract failed: %v", err)
+	}
+	// Duplicate draft must fail.
+	if err := c.CreateContract(ctx(stub, "AgencyMSP"), hash, worker, employer); err == nil {
+		t.Fatalf("expected duplicate contract to fail")
+	}
+
+	// Employer cannot approve before the worker signs.
+	if err := c.ApproveContract(ctx(stub, "EmployerMSP"), hash, employer); err == nil {
+		t.Fatalf("expected approve-before-sign to fail")
+	}
+	// A stranger cannot sign in the worker's place.
+	if err := c.SignContract(ctx(stub, "AgencyMSP"), hash, "did:key:intruder"); err == nil {
+		t.Fatalf("expected signing by wrong worker to fail")
+	}
+
+	if err := c.SignContract(ctx(stub, "WorkerMSP"), hash, worker); err != nil {
+		t.Fatalf("SignContract failed: %v", err)
+	}
+	// Double sign must fail (no longer PENDING).
+	if err := c.SignContract(ctx(stub, "WorkerMSP"), hash, worker); err == nil {
+		t.Fatalf("expected double sign to fail")
+	}
+	// Wrong employer cannot approve.
+	if err := c.ApproveContract(ctx(stub, "EmployerMSP"), hash, "did:key:other"); err == nil {
+		t.Fatalf("expected approval by wrong employer to fail")
+	}
+	if err := c.ApproveContract(ctx(stub, "EmployerMSP"), hash, employer); err != nil {
+		t.Fatalf("ApproveContract failed: %v", err)
+	}
+
+	res, err := c.GetContract(ctx(stub, "SaudiCoMSP"), hash)
+	if err != nil {
+		t.Fatalf("GetContract failed: %v", err)
+	}
+	if !res.Found || res.Status != StatusSigned {
+		t.Fatalf("expected found SIGNED, got found=%v status=%s", res.Found, res.Status)
+	}
+	if res.WorkerSignedAt == "" || res.ApprovedAt == "" {
+		t.Fatalf("expected both signing timestamps to be set")
+	}
+
+	// Unknown contract returns a clean not-found result, not an error.
+	res, err = c.GetContract(ctx(stub, "SaudiCoMSP"), "nope")
+	if err != nil {
+		t.Fatalf("GetContract of unknown should not error: %v", err)
+	}
+	if res.Found {
+		t.Fatalf("expected not found for unknown contract")
+	}
+}
+
 func TestUpdateAgencyStanding(t *testing.T) {
 	c := &EmploymentContract{}
 	stub := newEnv()

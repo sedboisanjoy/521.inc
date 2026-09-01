@@ -347,6 +347,133 @@ func (c *EmploymentContract) UpdateAgencyStanding(ctx contractapi.TransactionCon
 	return putJSON(ctx, k, st)
 }
 
+// --- 8. Contract lifecycle (UC3) -------------------------------------------
+
+// CreateContract anchors a new employment contract in PENDING state. Only the
+// salted hash and the two parties' DIDs are stored; the body is off-chain.
+func (c *EmploymentContract) CreateContract(ctx contractapi.TransactionContextInterface, contractHash, workerDID, employerDID string) error {
+	if contractHash == "" || workerDID == "" || employerDID == "" {
+		return fmt.Errorf("contractHash, workerDID and employerDID are required")
+	}
+	k, err := key(ctx, objContract, contractHash)
+	if err != nil {
+		return err
+	}
+	var existing Contract
+	found, err := getJSON(ctx, k, &existing)
+	if err != nil {
+		return err
+	}
+	if found {
+		return fmt.Errorf("contract %s already anchored", contractHash)
+	}
+	now, err := txTime(ctx)
+	if err != nil {
+		return err
+	}
+	msp, err := submittingMSP(ctx)
+	if err != nil {
+		return err
+	}
+	return putJSON(ctx, k, Contract{
+		DocType:      objContract,
+		ContractHash: contractHash,
+		WorkerDID:    workerDID,
+		EmployerDID:  employerDID,
+		Status:       StatusPending,
+		CreatedAt:    now,
+		CreatedBy:    msp,
+	})
+}
+
+// SignContract records the worker's signature (PENDING → WORKER_SIGNED). Only
+// the named worker may sign, and only a pending contract.
+func (c *EmploymentContract) SignContract(ctx contractapi.TransactionContextInterface, contractHash, workerDID string) error {
+	con, k, err := c.loadContract(ctx, contractHash)
+	if err != nil {
+		return err
+	}
+	if con.Status != StatusPending {
+		return fmt.Errorf("contract %s is not awaiting the worker (status %s)", contractHash, con.Status)
+	}
+	if con.WorkerDID != workerDID {
+		return fmt.Errorf("contract %s is not addressed to worker %s", contractHash, workerDID)
+	}
+	now, err := txTime(ctx)
+	if err != nil {
+		return err
+	}
+	con.Status = StatusWorkerSigned
+	con.WorkerSignedAt = now
+	return putJSON(ctx, k, con)
+}
+
+// ApproveContract records the employer's approval (WORKER_SIGNED → SIGNED).
+// Only the named employer may approve, and only after the worker has signed.
+func (c *EmploymentContract) ApproveContract(ctx contractapi.TransactionContextInterface, contractHash, employerDID string) error {
+	con, k, err := c.loadContract(ctx, contractHash)
+	if err != nil {
+		return err
+	}
+	if con.Status != StatusWorkerSigned {
+		return fmt.Errorf("contract %s is not awaiting employer approval (status %s)", contractHash, con.Status)
+	}
+	if con.EmployerDID != employerDID {
+		return fmt.Errorf("contract %s does not belong to employer %s", contractHash, employerDID)
+	}
+	now, err := txTime(ctx)
+	if err != nil {
+		return err
+	}
+	con.Status = StatusSigned
+	con.ApprovedAt = now
+	return putJSON(ctx, k, con)
+}
+
+// GetContract returns the anchored state of a contract (UC3/UC4). Found=false
+// for an unknown hash, mirroring VerifyAnchor.
+func (c *EmploymentContract) GetContract(ctx contractapi.TransactionContextInterface, contractHash string) (*ContractResult, error) {
+	k, err := key(ctx, objContract, contractHash)
+	if err != nil {
+		return nil, err
+	}
+	var con Contract
+	found, err := getJSON(ctx, k, &con)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return &ContractResult{Found: false, ContractHash: contractHash, Status: "UNKNOWN"}, nil
+	}
+	return &ContractResult{
+		Found:          true,
+		ContractHash:   con.ContractHash,
+		WorkerDID:      con.WorkerDID,
+		EmployerDID:    con.EmployerDID,
+		Status:         con.Status,
+		CreatedAt:      con.CreatedAt,
+		WorkerSignedAt: con.WorkerSignedAt,
+		ApprovedAt:     con.ApprovedAt,
+	}, nil
+}
+
+// loadContract fetches a contract and its state key, erroring if it's absent.
+func (c *EmploymentContract) loadContract(ctx contractapi.TransactionContextInterface, contractHash string) (Contract, string, error) {
+	var con Contract
+	k, err := key(ctx, objContract, contractHash)
+	if err != nil {
+		return con, "", err
+	}
+	found, err := getJSON(ctx, k, &con)
+	if err != nil {
+		return con, "", err
+	}
+	if !found {
+		return con, "", fmt.Errorf("contract %s does not exist", contractHash)
+	}
+	return con, k, nil
+}
+
 // --- read helpers (queries) ------------------------------------------------
 
 // GetCredential returns the full on-chain credential anchor (audit/debug).
