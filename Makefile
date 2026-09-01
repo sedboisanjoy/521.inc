@@ -2,7 +2,8 @@
 # Run `make help` for the list.
 
 .PHONY: help chaincode-test chaincode-build backend backend-fabric web web-build \
-        fabric-setup fabric-up fabric-down demo
+        fabric-setup fabric-up fabric-down demo \
+        simulator simulator-web
 
 help:
 	@echo "Employment Passport — make targets:"
@@ -16,6 +17,8 @@ help:
 	@echo "  fabric-up        bring up test-network + deploy chaincode"
 	@echo "  fabric-down      tear down the Fabric network"
 	@echo "  demo             run the end-to-end curl demo against a running backend"
+	@echo "  simulator        run the control-flow simulator (Go, :9090)"
+	@echo "  simulator-web    run the simulator visualizer (React, :5174)"
 
 chaincode-test:
 	cd chaincode && go test ./...
@@ -46,3 +49,9 @@ fabric-down:
 
 demo:
 	./demo.sh
+
+simulator:
+	cd simulator && go run ./cmd/
+
+simulator-web:
+	cd simulator/web && npm install && npm run dev
