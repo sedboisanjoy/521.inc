@@ -15,3 +15,10 @@ node_modules/
 # Env
 .env
 .env.local
+
+# Simulator
+/simulator/simulator
+/simulator/web/node_modules/
+/simulator/web/dist/
+/simulator.db
+*.db
