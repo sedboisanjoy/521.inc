@@ -287,7 +287,7 @@ func (e *Engine) runRevocation(r *RunResult) {
 
 	e.emit(r, FlowEvent{TxID: tx, Type: EvtProposal, From: "client", To: "did:key:regulator:bmet", Message: "BMET officer submits RevokeCredential: 'Certificate found fraudulent during audit'", Success: true, Details: `{"reason":"fraud_audit"}`})
 	e.emit(r, FlowEvent{TxID: tx, Type: EvtEndorsement, From: "did:key:regulator:bmet", To: "ledger", Message: "BMET endorses revocation", Success: true, Details: `{"endorser":"BMETMSP"}`})
-	e.emit(r, FlowEvent{TxID: tx, Type: EvtCommit, From: "orderer", To: "ledger", Message: "✓ Credential REVOKED. Status: REVOKED ← ACTIVE. Immutable audit trail preserved.", Success: true, Details: `{"newStatus":"REVOKED","revokedBy":"BMET"}`})
+	e.emit(r, FlowEvent{TxID: tx, Type: EvtCommit, From: "orderer", To: "ledger", Message: "✓ Credential REVOKED. Status: REVOKED ← ACTIVE. Immutable audit trail preserved.", Success: true, Details: fmt.Sprintf(`{"credHash":"%s","newStatus":"REVOKED","revokedBy":"BMET"}`, credHash)})
 
 	// Trust penalty on issuer
 	e.emit(r, FlowEvent{TxID: tx, Type: EvtTrustDelta, From: "ledger", To: "did:key:issuer:ttc-dhaka", Message: "TTC Dhaka trust score: 92 → 77 (-15 for fraud revocation)", Success: true, Details: `{"old":92,"delta":-15,"new":77}`})

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/cheatro-gupto/employment-passport/simulator/internal/engine"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // DB wraps a SQLite connection with a schema bootstrapper and CRUD helpers.
@@ -29,7 +29,7 @@ func Open(path string) (*DB, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return nil, fmt.Errorf("create db dir: %w", err)
 	}
-	conn, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_foreign_keys=on")
+	conn, err := sql.Open("sqlite", path+"?_journal_mode=WAL&_foreign_keys=on")
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
