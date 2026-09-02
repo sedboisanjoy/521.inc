@@ -131,15 +131,21 @@ func (e *Engine) RunScenario(scenarioID string) (*RunResult, error) {
 		e.runSelectiveDisclosure(result)
 	case "corroboration-flow":
 		e.runCorroboration(result)
+	case "adv-tamper":
+		e.runAttackTamper(result)
+	case "adv-sybil-corroboration":
+		e.runAttackSybil(result)
 	default:
 		return nil, fmt.Errorf("scenario %q not implemented", scenarioID)
 	}
 
 	now := time.Now()
 	result.EndedAt = &now
+	// A run is "successful" (secure) unless the network rejected a legitimate tx
+	// (policy fail) OR an attack exposed a real vulnerability we don't stop.
 	result.Success = true
 	for _, ev := range result.Events {
-		if ev.Type == EvtPolicyFail {
+		if ev.Type == EvtPolicyFail || ev.Type == EvtVulnerability {
 			result.Success = false
 		}
 	}
@@ -302,9 +308,11 @@ func (e *Engine) runTrustMonitoring(r *RunResult) {
 
 	e.emit(r, FlowEvent{TxID: tx, Type: EvtTrustDelta, From: "ledger", To: "did:key:issuer:ttc-dhaka", Message: "Live Trust Scores — BMET Dashboard", Success: true, Details: `{"scores":{"TTC-Dhaka":92,"TTC-Chittagong":70,"PrivateInst-A":40,"PrivateInst-B":20}}`})
 
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	for _, org := range e.topo.Orgs {
+	// Snapshot the orgs under the read-lock, then RELEASE it before emitting —
+	// emit() takes the write-lock (via nextSeq), so holding RLock across it
+	// self-deadlocks (RWMutex is not reentrant).
+	orgs := e.Topology().Orgs
+	for _, org := range orgs {
 		status := "✅"
 		if org.Score < 40 {
 			status = "❌"
@@ -356,6 +364,31 @@ func (e *Engine) runCorroboration(r *RunResult) {
 	e.emit(r, FlowEvent{TxID: tx, Type: EvtCorroboration, From: "did:key:regulator:bmet", To: "ledger", Message: "BMET corroborates — remittance data matches", Success: true, Details: `{"source":"bmet","score":2}`})
 	e.emit(r, FlowEvent{TxID: tx, Type: EvtCorroboration, From: "did:key:issuer:ttc-dhaka", To: "ledger", Message: "TTC corroborates — training record consistent", Success: true, Details: `{"source":"ttc","score":3}`})
 	e.emit(r, FlowEvent{TxID: tx, Type: EvtCommit, From: "ledger", To: "client", Message: "✓ Corroboration score: 3 independent sources. Trust: HIGH.", Success: true, Details: fmt.Sprintf(`{"credHash":"%s","corroborationScore":3}`, credHash)})
+}
+
+// ─── Adversarial: Tampered credential (DEFENDED by hash anchoring) ──────────
+
+func (e *Engine) runAttackTamper(r *RunResult) {
+	tx := e.txID()
+	anchored := e.hash("welding-l3-cert|level=3")
+	forged := e.hash("welding-l3-cert|level=5") // attacker bumps the level
+
+	e.emit(r, FlowEvent{TxID: tx, Type: EvtAttack, From: "attacker", To: "did:key:verifier:bank", Message: "🗡️ Attacker edits the off-chain certificate: Welding L3 → L5, then presents it", Success: false, Details: `{"tampered":"level 3->5"}`})
+	e.emit(r, FlowEvent{TxID: tx, Type: EvtProposal, From: "did:key:verifier:bank", To: "ledger", Message: "Employer runs VerifyAnchor on the presented certificate", Success: true})
+	e.emit(r, FlowEvent{TxID: tx, Type: EvtValidation, From: "ledger", To: "did:key:verifier:bank", Message: "Recomputed hash " + forged[:12] + "… ≠ anchored hash " + anchored[:12] + "…", Success: false, Details: fmt.Sprintf(`{"anchored":"%s","recomputed":"%s"}`, anchored, forged)})
+	e.emit(r, FlowEvent{TxID: tx, Type: EvtDefense, From: "ledger", To: "attacker", Message: "🛡️ DEFENDED — hash mismatch. The tampered certificate does not match the ledger. Rejected.", Success: true, Details: `{"defense":"hash anchoring / immutability"}`})
+}
+
+// ─── Adversarial: Sybil corroboration (DEFENDED by DID-registry check) ───────
+
+func (e *Engine) runAttackSybil(r *RunResult) {
+	tx := e.txID()
+
+	e.emit(r, FlowEvent{TxID: tx, Type: EvtAttack, From: "attacker", To: "ledger", Message: "🗡️ Attacker tries to inflate corroboration on a weak credential using invented source DIDs", Success: false, Details: `{"sources":["sockpuppet-1","sockpuppet-2","sockpuppet-3"]}`})
+	for i := 1; i <= 3; i++ {
+		e.emit(r, FlowEvent{TxID: tx, Type: EvtEndorsement, From: fmt.Sprintf("did:key:sockpuppet-%d", i), To: "ledger", Message: fmt.Sprintf("SubmitCorroboration checks source #%d against the DID registry — not registered", i), Success: false, Details: `{"registered":false}`})
+	}
+	e.emit(r, FlowEvent{TxID: tx, Type: EvtDefense, From: "ledger", To: "attacker", Message: "🛡️ DEFENDED — every sock-puppet source is rejected: a corroboration only counts from a DID registered on-chain. Score unchanged.", Success: true, Details: `{"defense":"sourceDID must exist in the on-chain DID registry"}`})
 }
 
 // ─── State helpers ──────────────────────────────────────────────────────────

@@ -28,10 +28,14 @@ export function ScenarioRunner({ scenarios, lastRun, running, onRun }: Props) {
 
       <div className="scenario-grid">
         {scenarios.map((s) => (
-          <div key={s.id} className="scenario-card">
-            <div className="sc-uc-badge">{UC_LABELS[s.useCase] || `UC${s.useCase}`}</div>
+          <div key={s.id} className={`scenario-card ${s.adversarial ? "adversarial" : ""}`}>
+            <div className="sc-uc-badge">{s.adversarial ? "🛡️ Adversarial" : UC_LABELS[s.useCase] || `UC${s.useCase}`}</div>
             <h3>{s.name}</h3>
             <p>{s.description}</p>
+            <div className="sc-mapping" title="The chaincode function and REST route the main app runs for this flow">
+              <code className="sc-fn">{s.fn}</code>
+              <code className="sc-endpoint">{s.endpoint}</code>
+            </div>
             <button
               className="run-btn"
               disabled={running}

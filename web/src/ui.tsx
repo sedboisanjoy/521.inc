@@ -1,5 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { useStore } from "./store";
+import { Icon } from "./icons";
+import { Text } from "@arwes/react-text";
+import { FrameUnderline } from "@arwes/react-frames";
+import { Panel, type FrameColor } from "./arwes";
 
 // --- Copyable mono value (DIDs, hashes) -----------------------------------
 export function Copy({ value, short }: { value: string; short?: boolean }) {
@@ -12,22 +16,31 @@ export function Copy({ value, short }: { value: string; short?: boolean }) {
       setDone(true);
       setTimeout(() => setDone(false), 1200);
     } catch {
-      toast("error", "Clipboard unavailable");
+      toast("error", "Could not copy");
     }
   }
   return (
     <button className="copy" onClick={copy} title={value}>
       <span className="mono">{shown}</span>
-      <span className="copy-ico">{done ? "✓" : "⧉"}</span>
+      <span className="copy-ico"><Icon name={done ? "check" : "copy"} size={14} /></span>
     </button>
   );
 }
 
 // --- Status badge ----------------------------------------------------------
+// English labels for the statuses shown to users.
+const STATUS_BN: Record<string, string> = {
+  ACTIVE: "Active", ONLINE: "Connected", OK: "OK", REVOKED: "Revoked",
+  OFFLINE: "Offline", UNKNOWN: "Unknown", PENDING: "Pending",
+  WORKER_SIGNED: "Signed", SIGNED: "Completed", CORROBORATED: "Corroborated",
+  APPLIED: "Applied", ACCEPTED: "Accepted", REJECTED: "Rejected",
+};
 export function Badge({ status }: { status: string }) {
   const s = status.toUpperCase();
-  const cls = s === "ACTIVE" || s === "OK" || s === "ONLINE" ? "active" : s === "REVOKED" ? "revoked" : "unknown";
-  return <span className={`badge ${cls}`}>{s}</span>;
+  const cls = s === "ACTIVE" || s === "OK" || s === "ONLINE" || s === "SIGNED" || s === "ACCEPTED" || s === "CORROBORATED"
+    ? "active"
+    : s === "REVOKED" || s === "REJECTED" || s === "OFFLINE" ? "revoked" : "unknown";
+  return <span className={`badge ${cls}`}>{STATUS_BN[s] || status}</span>;
 }
 
 // --- Primary action button with loading state -----------------------------
@@ -52,8 +65,11 @@ export function Button({
       onClick={onClick}
       disabled={disabled || busy}
     >
-      {busy && <span className="spinner" />}
-      {children}
+      <FrameUnderline className="btn-frame" style={{ zIndex: 0 }} />
+      <span className="btn-label">
+        {busy && <span className="spinner" />}
+        {children}
+      </span>
     </button>
   );
 }
@@ -78,7 +94,7 @@ export function Field({
 }
 
 // --- Collapsible raw JSON --------------------------------------------------
-export function JsonDetails({ data, label = "Raw response" }: { data: unknown; label?: string }) {
+export function JsonDetails({ data, label = "Details" }: { data: unknown; label?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="json-details">
@@ -96,21 +112,23 @@ export function Card({
   tag,
   hint,
   children,
+  color = "cyan",
 }: {
   title: string;
   tag?: string;
   hint?: string;
   children: ReactNode;
+  color?: FrameColor;
 }) {
   return (
-    <section className="card">
+    <Panel className="card" color={color}>
       <div className="card-head">
-        <h2>{title}</h2>
+        <h2><Text as="span" manager="decipher">{title}</Text></h2>
         {tag && <span className="tag">{tag}</span>}
       </div>
       {hint && <p className="hint">{hint}</p>}
       {children}
-    </section>
+    </Panel>
   );
 }
 
@@ -122,9 +140,9 @@ export function ErrorLine({ msg }: { msg: string }) {
 
 // --- Contract signing stepper ---------------------------------------------
 const CONTRACT_STEPS = [
-  { key: "PENDING", label: "Drafted" },
-  { key: "WORKER_SIGNED", label: "Worker signed" },
-  { key: "SIGNED", label: "Employer approved" },
+  { key: "PENDING", label: "Created" },
+  { key: "WORKER_SIGNED", label: "Worker Signed" },
+  { key: "SIGNED", label: "Approved" },
 ];
 
 export function ContractStepper({ status }: { status: string }) {
@@ -153,7 +171,7 @@ export function Toaster() {
     <div className="toaster">
       {toasts.map((t) => (
         <div key={t.id} className={`toast toast-${t.kind}`} onClick={() => dismiss(t.id)}>
-          <span className="toast-ico">{t.kind === "success" ? "✓" : t.kind === "error" ? "✕" : "ℹ"}</span>
+          <span className="toast-ico"><Icon name={t.kind === "success" ? "check" : t.kind === "error" ? "x" : "info"} size={13} /></span>
           <span>{t.message}</span>
         </div>
       ))}

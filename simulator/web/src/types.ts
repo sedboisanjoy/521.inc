@@ -37,7 +37,8 @@ export interface Topology {
 export type EventType =
   | "PROPOSAL" | "ENDORSEMENT" | "ORDERING" | "VALIDATION" | "COMMIT"
   | "POLICY_FAIL" | "REVOCATION" | "CORROBORATION" | "TRUST_DELTA"
-  | "DISCLOSURE" | "SYSTEM_OFFLINE" | "SYSTEM_ONLINE";
+  | "DISCLOSURE" | "SYSTEM_OFFLINE" | "SYSTEM_ONLINE"
+  | "ATTACK" | "DEFENSE" | "VULNERABILITY";
 
 export interface FlowEvent {
   id: number;
@@ -57,6 +58,9 @@ export interface Scenario {
   name: string;
   description: string;
   useCase: number;
+  fn: string;
+  endpoint: string;
+  adversarial: boolean;
 }
 
 export interface RunResult {

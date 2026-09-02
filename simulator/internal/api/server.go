@@ -5,6 +5,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,6 +17,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
+
+// runTimeout bounds a single scenario execution. A scenario that exceeds it
+// (e.g. a future deadlock or infinite loop) fails the request instead of
+// hanging the client — the middleware Recoverer catches panics, but a hung
+// goroutine needs an explicit timeout.
+const runTimeout = 5 * time.Second
 
 // Server wires the engine, database, and health probe into an HTTP router.
 type Server struct {
@@ -81,18 +88,42 @@ func (s *Server) listScenarios(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) runScenario(w http.ResponseWriter, r *http.Request) {
 	scenarioID := chi.URLParam(r, "scenarioId")
-	result, err := s.Eng.RunScenario(scenarioID)
-	if err != nil {
-		writeErr(w, http.StatusBadRequest, err)
-		return
+
+	type outcome struct {
+		result *engine.RunResult
+		err    error
 	}
-	id, err := s.DB.SaveRun(result)
-	if err != nil {
-		writeErr(w, http.StatusInternalServerError, err)
+	// Run in a goroutine guarded by a timeout so a stuck scenario can't hang
+	// the request forever. Recover from panics inside the run too.
+	ch := make(chan outcome, 1)
+	go func() {
+		defer func() {
+			if rec := recover(); rec != nil {
+				ch <- outcome{nil, fmt.Errorf("scenario %q panicked: %v", scenarioID, rec)}
+			}
+		}()
+		res, err := s.Eng.RunScenario(scenarioID)
+		ch <- outcome{res, err}
+	}()
+
+	select {
+	case <-time.After(runTimeout):
+		writeErr(w, http.StatusGatewayTimeout,
+			fmt.Errorf("scenario %q timed out after %s (possible deadlock — server left running)", scenarioID, runTimeout))
 		return
+	case out := <-ch:
+		if out.err != nil {
+			writeErr(w, http.StatusBadRequest, out.err)
+			return
+		}
+		id, err := s.DB.SaveRun(out.result)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err)
+			return
+		}
+		out.result.ID = id
+		writeJSON(w, http.StatusCreated, out.result)
 	}
-	result.ID = id
-	writeJSON(w, http.StatusCreated, result)
 }
 
 func (s *Server) listRuns(w http.ResponseWriter, r *http.Request) {

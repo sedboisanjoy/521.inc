@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { api, type ContractEntry } from "../api";
 import { useStore } from "../store";
 import { Card, Button, ErrorLine, Copy, ContractStepper } from "../ui";
+import { Icon } from "../icons";
+import { subjectFromActivity, subjectFromRecord } from "../flow";
 
 // Worker — the contract inbox. Review the terms an employer drafted and sign
 // (PENDING → WORKER_SIGNED). The exact terms are read from the off-chain body;
 // the ledger holds only the hash + status, so nothing can be swapped later.
 export function WorkerContracts() {
-  const { identityDID, session, log, toast } = useStore();
+  const { identityDID, session, log, toast, openFlow, autoFlow } = useStore();
   const myDID = identityDID || session.did || "";
 
   const [contracts, setContracts] = useState<ContractEntry[]>([]);
@@ -30,8 +32,9 @@ export function WorkerContracts() {
     setBusy(c.contractHash);
     try {
       await api.signContract({ contractHash: c.contractHash, workerDID: myDID });
-      log({ kind: "sign", actor: "Worker", title: `Signed contract · ${c.position}`, detail: c.contractHash, ok: true });
-      toast("success", "Contract signed — sent back to the employer");
+      const entry = log({ kind: "sign", actor: "Worker", title: `Contract Signed · ${c.position}`, detail: c.contractHash, ok: true });
+      toast("success", "Contract signed — sent back to the company");
+      if (autoFlow) openFlow(subjectFromActivity(entry));
       await load();
     } catch (e) {
       toast("error", (e as Error).message);
@@ -43,14 +46,14 @@ export function WorkerContracts() {
   return (
     <Card
       title="My Contracts"
-      tag="UC3 · review & sign"
-      hint="Employers draft contracts here. Read the exact terms and sign — the signed version is anchored immutably, so no one can hand you a worse contract on arrival."
+      tag="Read & Sign"
+      hint="Companies create contracts here. Read the terms carefully and sign — a signed contract is stored permanently on the blockchain, so no one can hand you a different contract once you're abroad."
     >
       <ErrorLine msg={err} />
       {contracts.length === 0 ? (
         <div className="empty">
-          <div className="empty-ico">📄</div>
-          No contracts yet — once a company hires you, the offer appears here.
+          <div className="empty-ico"><Icon name="document" size={28} /></div>
+          No contracts yet — when a company hires you, the contract offer will appear here.
         </div>
       ) : (
         <div className="job-list">
@@ -61,21 +64,23 @@ export function WorkerContracts() {
                 <div className="job-head">
                   <div>
                     <div className="job-title">{c.position}</div>
-                    <div className="job-company">🏢 {c.employer}</div>
+                    <div className="job-company">{c.employer}</div>
                   </div>
                   <div className="job-wage">{c.salary.toLocaleString()} <span>{c.currency}</span></div>
                 </div>
                 <div className="contract-terms">
-                  <span className="claim"><span className="claim-k">term</span><span className="claim-v">{c.term}</span></span>
-                  <span className="claim"><span className="claim-k">employer DID</span><span className="claim-v mono">{c.employerDID.slice(0, 16)}…</span></span>
+                  <span className="claim"><span className="claim-k">Term</span><span className="claim-v">{c.term}</span></span>
                 </div>
                 <ContractStepper status={status} />
-                <div className="result-row"><span>Contract hash</span><Copy value={c.contractHash} short /></div>
+                <div className="result-row"><span>Contract Hash</span><Copy value={c.contractHash} short /></div>
                 {status === "PENDING" && (
-                  <Button onClick={() => sign(c)} busy={busy === c.contractHash}>Review &amp; sign</Button>
+                  <Button onClick={() => sign(c)} busy={busy === c.contractHash}>Read & Sign</Button>
                 )}
-                {status === "WORKER_SIGNED" && <div className="hint" style={{ marginTop: 12 }}>Signed ✓ — awaiting employer approval.</div>}
-                {status === "SIGNED" && <div className="job-applied" style={{ marginTop: 12 }}>✓ Fully signed &amp; anchored</div>}
+                {status === "WORKER_SIGNED" && <div className="hint" style={{ marginTop: 12 }}>Signed ✓ — awaiting company approval.</div>}
+                {status === "SIGNED" && <div className="job-applied" style={{ marginTop: 12 }}>✓ Fully signed & recorded</div>}
+                <button className="flow-link-btn" onClick={() => openFlow(subjectFromRecord("contract", c))}>
+                  <Icon name="flow" size={14} /> View Data Flow
+                </button>
               </article>
             );
           })}

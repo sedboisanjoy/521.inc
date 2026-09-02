@@ -73,6 +73,11 @@ const (
 	EvtDisclosure    EventType = "DISCLOSURE"    // selective-disclosure proof
 	EvtSystemOffline EventType = "SYSTEM_OFFLINE"// backend unreachable
 	EvtSystemOnline  EventType = "SYSTEM_ONLINE" // backend recovered
+
+	// Adversarial-scenario events (attack / defence / weakness storytelling).
+	EvtAttack        EventType = "ATTACK"        // a malicious attempt
+	EvtDefense       EventType = "DEFENSE"       // the network rejects the attack
+	EvtVulnerability EventType = "VULNERABILITY" // our system fails to stop it
 )
 
 // FlowEvent is one atomic step in a simulated transaction flow. The visualizer
@@ -124,21 +129,29 @@ type Scenario struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	UseCase     int    `json:"useCase"` // whitepaper UC number
+	Fn          string `json:"fn"`       // chaincode function exercised
+	Endpoint    string `json:"endpoint"` // REST route the main app hits
+	Adversarial bool   `json:"adversarial"`
 }
 
 // Predefined scenarios matching the 7 whitepaper use cases plus policy-failure
 // and multi-org endorsement demos.
 var Scenarios = []Scenario{
-	{ID: "uc1-register", Name: "UC1 — Worker Registration", Description: "BMET registers a new worker DID on the ledger. Only hashes touch the chain.", UseCase: 1},
-	{ID: "uc2-issue", Name: "UC2 — Skill Credential Issuance", Description: "TTC issues a Welding L3 certificate; AND(TTCMSP,BMETMSP) endorsement enforced.", UseCase: 2},
-	{ID: "uc3-contract", Name: "UC3 — Contract Anchoring", Description: "Three-party contract (agency, worker, employer) signed and hashed on-chain.", UseCase: 3},
-	{ID: "uc4-verify", Name: "UC4 — Credential Verification", Description: "Foreign employer verifies a credential; trust score + recommendation returned.", UseCase: 4},
-	{ID: "uc5-wage", Name: "UC5 — Wage Record", Description: "Bank records monthly wage on ledger; payroll corroboration.", UseCase: 5},
-	{ID: "uc6-revoke", Name: "UC6 — Revocation", Description: "BMET revokes a fraudulent credential; trust score penalty applied.", UseCase: 6},
-	{ID: "uc7-monitor", Name: "UC7 — Trust Monitoring", Description: "Live agency standing dashboard; TTC-Mirpur vs TTC-Chittagong comparison.", UseCase: 7},
-	{ID: "policy-fail", Name: "Policy Enforcement — Peer Down", Description: "TTC peer goes OFFLINE → endorsement policy AND(TTCMSP,BMETMSP) FAILS → tx rejected.", UseCase: 0},
-	{ID: "selective-disclosure", Name: "Selective Disclosure — Salary Proof", Description: "Worker proves wage ≥ 25,000 BDT without revealing exact salary.", UseCase: 0},
-	{ID: "corroboration-flow", Name: "Corroboration Scoring", Description: "Bank corroborates a wage credential; score climbs from 1 -> 2 -> 3.", UseCase: 0},
+	{ID: "uc1-register", Name: "UC1 — Worker Registration", Description: "BMET registers a new worker DID on the ledger. Only hashes touch the chain.", UseCase: 1, Fn: "RegisterDID", Endpoint: "POST /api/workers"},
+	{ID: "uc2-issue", Name: "UC2 — Skill Credential Issuance", Description: "TTC issues a Welding L3 certificate; AND(TTCMSP,BMETMSP) endorsement enforced.", UseCase: 2, Fn: "IssueCredential", Endpoint: "POST /api/credentials"},
+	{ID: "uc3-contract", Name: "UC3 — Contract Anchoring", Description: "Employer drafts a contract; worker signs, employer approves — hashed on-chain.", UseCase: 3, Fn: "CreateContract / SignContract / ApproveContract", Endpoint: "POST /api/contracts"},
+	{ID: "uc4-verify", Name: "UC4 — Credential Verification", Description: "Foreign employer verifies a credential; trust score + recommendation returned.", UseCase: 4, Fn: "VerifyAnchor", Endpoint: "GET /api/verify/{hash}"},
+	{ID: "uc5-wage", Name: "UC5 — Wage Record", Description: "Bank records monthly wage on ledger; payroll corroboration.", UseCase: 5, Fn: "IssueCredential", Endpoint: "POST /api/credentials"},
+	{ID: "uc6-revoke", Name: "UC6 — Revocation", Description: "BMET revokes a fraudulent credential; trust score penalty applied.", UseCase: 6, Fn: "RevokeCredential", Endpoint: "POST /api/revoke"},
+	{ID: "uc7-monitor", Name: "UC7 — Trust Monitoring", Description: "Live agency standing dashboard; TTC-Mirpur vs TTC-Chittagong comparison.", UseCase: 7, Fn: "GetAgencyStanding", Endpoint: "GET /api/agency-standing/{did}"},
+	{ID: "policy-fail", Name: "Policy Enforcement — Peer Down", Description: "TTC peer goes OFFLINE → endorsement policy AND(TTCMSP,BMETMSP) FAILS → tx rejected.", UseCase: 0, Fn: "IssueCredential", Endpoint: "POST /api/credentials"},
+	{ID: "selective-disclosure", Name: "Selective Disclosure — Salary Proof", Description: "Worker proves wage ≥ 25,000 BDT without revealing exact salary.", UseCase: 0, Fn: "RecordDisclosure", Endpoint: "POST /api/disclose"},
+	{ID: "corroboration-flow", Name: "Corroboration Scoring", Description: "Bank corroborates a wage credential; score climbs from 1 -> 2 -> 3.", UseCase: 0, Fn: "SubmitCorroboration", Endpoint: "POST /api/corroborate"},
+
+	// ── Adversarial suite — attacks on real ledger properties (not on prototype
+	// shortcuts). Both are defended by the actual chaincode. ──
+	{ID: "adv-tamper", Name: "🗡️ Attack — Tampered Credential", Description: "Attacker edits the off-chain credential body (level 3 → 5). Recomputed hash ≠ anchored hash → verification rejects it. DEFENDED by hash anchoring.", UseCase: 0, Fn: "VerifyAnchor", Endpoint: "GET /api/verify/{hash}", Adversarial: true},
+	{ID: "adv-sybil-corroboration", Name: "🗡️ Attack — Sybil Corroboration", Description: "Attacker tries to inflate corroboration with invented source DIDs. SubmitCorroboration checks each source is a registered on-chain DID → sock-puppets rejected. DEFENDED.", UseCase: 0, Fn: "SubmitCorroboration", Endpoint: "POST /api/corroborate", Adversarial: true},
 }
 
 // ─── Simulation run results ─────────────────────────────────────────────────

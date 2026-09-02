@@ -131,6 +131,11 @@ func (m *Mock) SubmitCorroboration(credHash, sourceDID, evidenceHash string) err
 	if sourceDID == c.IssuerDID {
 		return fmt.Errorf("issuer cannot corroborate its own credential")
 	}
+	// Sybil-resistance: only a registered DID can corroborate, else the score
+	// could be inflated with invented source DIDs.
+	if !m.dids[sourceDID] {
+		return fmt.Errorf("source %s is not a registered DID", sourceDID)
+	}
 	if c.sources[sourceDID] {
 		return fmt.Errorf("source %s has already corroborated this credential", sourceDID)
 	}

@@ -147,6 +147,74 @@ body {
 .link.gossip { stroke-dasharray: 4,2; opacity: 0.5; }
 .link.peer-orderer { stroke-width: 1.5; opacity: 0.7; }
 
+/* ─── FlowMap (animated flow on topology) ───────────────────────────────── */
+.flowmap-info { margin-top: 0; margin-bottom: 10px; }
+.flowmap-svg { height: 440px; }
+
+.flow-caption {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 14px; padding: 12px 14px;
+  background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
+  min-height: 46px;
+}
+.cap-badge {
+  flex-shrink: 0; color: #fff; font-weight: 700; font-size: 11px;
+  padding: 4px 10px; border-radius: 999px; letter-spacing: 0.3px; white-space: nowrap;
+}
+.cap-msg { font-size: 14px; color: var(--text); line-height: 1.4; }
+.cap-msg.muted { color: var(--text-muted); }
+
+.flow-progress {
+  margin-top: 10px; height: 6px; background: #0d1117;
+  border-radius: 999px; overflow: hidden; border: 1px solid var(--border);
+}
+.flow-progress-bar { height: 100%; border-radius: 999px; transition: width 0.35s ease; }
+
+.flow-controls {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap;
+}
+.flow-controls button {
+  background: var(--bg-hover); color: var(--text); border: 1px solid var(--border);
+  padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.flow-controls button:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); }
+.flow-controls button:disabled { opacity: 0.4; cursor: default; }
+.flow-step { font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.flow-spacer { flex: 1; }
+.flow-outcome {
+  font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px;
+}
+.flow-outcome.pass { background: rgba(46, 204, 113, 0.15); color: var(--green); }
+.flow-outcome.fail { background: rgba(231, 76, 60, 0.15); color: var(--red); }
+.flow-speed { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.flow-speed select {
+  background: var(--bg-hover); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 8px; font-size: 12px;
+}
+
+/* ─── App-link mapping labels (chaincode fn + REST endpoint) ─────────────── */
+.sc-mapping, .flowmap-mapping {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0;
+}
+.flowmap-mapping { margin: 10px 0 0; }
+.mapping-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-muted); font-weight: 700;
+}
+.sc-fn, .sc-endpoint {
+  font-family: ui-monospace, "SF Mono", monospace; font-size: 11px;
+  padding: 3px 8px; border-radius: 5px; border: 1px solid var(--border);
+}
+.sc-fn { background: rgba(155, 89, 182, 0.15); color: #c39bd3; }        /* chaincode fn */
+.sc-endpoint { background: rgba(52, 152, 219, 0.15); color: #7fb8e6; }  /* REST route */
+
+/* ─── Adversarial scenario cards ────────────────────────────────────────── */
+.scenario-card.adversarial {
+  border-color: rgba(231, 76, 60, 0.45);
+  background: linear-gradient(180deg, rgba(231, 76, 60, 0.06), transparent);
+}
+.scenario-card.adversarial .sc-uc-badge { background: rgba(231, 76, 60, 0.18); color: #f1948a; }
+
 /* ─── Scenario Runner ───────────────────────────────────────────────────── */
 .scenario-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

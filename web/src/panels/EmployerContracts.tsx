@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import { api, type ContractEntry } from "../api";
 import { useStore } from "../store";
 import { Card, Field, Button, ErrorLine, Copy, ContractStepper } from "../ui";
+import { Icon } from "../icons";
+import { subjectFromActivity, subjectFromRecord } from "../flow";
 
 // Company — draft an employment contract for a hired worker and approve it once
 // the worker has signed (WORKER_SIGNED → SIGNED). A draft is normally seeded
 // from the Hire action on the Applicants screen.
 export function EmployerContracts() {
-  const { identityDID, contractDraft, setContractDraft, log, toast } = useStore();
+  const { identityDID, session, contractDraft, setContractDraft, log, toast, openFlow, autoFlow } = useStore();
   const myDID = identityDID || "did:key:employer";
 
   const [workerDID, setWorkerDID] = useState("");
-  const [employer, setEmployer] = useState("SaudiCo Ltd");
+  const [employer, setEmployer] = useState(session.orgName || "Company");
   const [position, setPosition] = useState("Welder");
   const [salary, setSalary] = useState(2000);
   const [currency, setCurrency] = useState("SAR");
@@ -44,18 +46,25 @@ export function EmployerContracts() {
       setErr((e as Error).message);
     }
   }
-  useEffect(() => { load(); }, [myDID]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Poll so a worker's signature (done in their own session) surfaces here and
+  // the "approve" button appears without a manual reload.
+  useEffect(() => {
+    load();
+    const iv = setInterval(load, 4000);
+    return () => clearInterval(iv);
+  }, [myDID]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function draft() {
-    if (!workerDID.trim()) return toast("error", "A worker DID is required.");
+    if (!workerDID.trim()) return toast("error", "Enter the Worker ID.");
     setBusy(true);
     try {
       const r = await api.createContract({
         workerDID: workerDID.trim(), employerDID: myDID, employer,
         position, salary: Number(salary), currency, term, jobId,
       });
-      log({ kind: "contract", actor: "Company", title: `Drafted contract · ${position}`, detail: r.contractHash, ok: true });
-      toast("success", "Contract drafted — sent to the worker to sign");
+      const entry = log({ kind: "contract", actor: "Company", title: `Contract Created · ${position}`, detail: r.contractHash, ok: true });
+      toast("success", "Contract created — sent to the worker for signing");
+      if (autoFlow) openFlow(subjectFromActivity(entry));
       await load();
     } catch (e) {
       toast("error", (e as Error).message);
@@ -68,8 +77,9 @@ export function EmployerContracts() {
     setBusyApprove(c.contractHash);
     try {
       await api.approveContract({ contractHash: c.contractHash, employerDID: myDID });
-      log({ kind: "approve", actor: "Company", title: `Approved contract · ${c.position}`, detail: c.contractHash, ok: true });
-      toast("success", "Contract approved & anchored SIGNED");
+      const entry = log({ kind: "approve", actor: "Company", title: `Contract Approved · ${c.position}`, detail: c.contractHash, ok: true });
+      toast("success", "Contract approved and recorded");
+      if (autoFlow) openFlow(subjectFromActivity(entry));
       await load();
     } catch (e) {
       toast("error", (e as Error).message);
@@ -81,11 +91,11 @@ export function EmployerContracts() {
   return (
     <div className="panel-grid">
       <Card
-        title="Draft a Contract"
-        tag="UC3 · CreateContract"
-        hint="Draft an offer for a hired worker. Only a salted hash of the terms goes on-chain; the worker signs, then you approve."
+        title="Create a Contract"
+        tag="New Contract"
+        hint="Draft a contract offer for a hired worker. Only a secret hash of the terms goes on the blockchain; the worker signs, then you approve."
       >
-        <Field label="Worker DID" hint={workerDID ? undefined : "Hire an applicant to prefill this, or paste a DID."}>
+        <Field label="Worker ID" hint={workerDID ? undefined : "This fills in automatically when you hire an applicant."}>
           <input value={workerDID} onChange={(e) => setWorkerDID(e.target.value)} placeholder="did:key:worker:…" />
         </Field>
         <Field label="Position">
@@ -102,15 +112,19 @@ export function EmployerContracts() {
             <input value={term} onChange={(e) => setTerm(e.target.value)} />
           </Field>
         </div>
-        <Button onClick={draft} busy={busy} disabled={!workerDID.trim()}>Draft &amp; anchor</Button>
+        <Button onClick={draft} busy={busy} disabled={!workerDID.trim()}>Create Contract</Button>
         <ErrorLine msg={err} />
       </Card>
 
-      <Card title="Your Contracts" tag={`${contracts.length}`} hint="Contracts you've drafted and their signing progress. Approve once the worker has signed.">
+      <Card title="Your Contracts" tag={`${contracts.length}`} hint="The contracts you've created and their signing progress. Approve once the worker signs.">
+        <div className="dir-head" style={{ marginBottom: 10 }}>
+          <span className="field-hint" style={{ margin: 0 }}>Updates automatically every 4 seconds</span>
+          <button className="dir-refresh" onClick={load}>↻ Refresh</button>
+        </div>
         {contracts.length === 0 ? (
           <div className="empty">
-            <div className="empty-ico">📑</div>
-            No contracts yet — draft one for a hired worker.
+            <div className="empty-ico"><Icon name="document" size={28} /></div>
+            No contracts yet — create one for a hired worker.
           </div>
         ) : (
           <div className="job-list">
@@ -127,10 +141,13 @@ export function EmployerContracts() {
                   <div className="result-row"><span>Worker</span><Copy value={c.workerDID} short /></div>
                   <ContractStepper status={status} />
                   {status === "WORKER_SIGNED" && (
-                    <Button onClick={() => approve(c)} busy={busyApprove === c.contractHash}>Approve &amp; finalise</Button>
+                    <Button onClick={() => approve(c)} busy={busyApprove === c.contractHash}>Approve</Button>
                   )}
                   {status === "PENDING" && <div className="hint" style={{ marginTop: 12 }}>Awaiting the worker's signature.</div>}
-                  {status === "SIGNED" && <div className="job-applied" style={{ marginTop: 12 }}>✓ SIGNED &amp; anchored</div>}
+                  {status === "SIGNED" && <div className="job-applied" style={{ marginTop: 12 }}>✓ Completed & recorded</div>}
+                  <button className="flow-link-btn" onClick={() => openFlow(subjectFromRecord("contract", c))}>
+                    <Icon name="flow" size={14} /> View Data Flow
+                  </button>
                 </article>
               );
             })}

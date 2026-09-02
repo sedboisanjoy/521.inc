@@ -42,6 +42,14 @@ export interface WorkerDir {
   address: string;
 }
 
+export interface OrgDir {
+  orgId: string;
+  did: string;
+  name: string;
+  type: "ttc" | "company";
+  email?: string;
+}
+
 export interface ContractAnchor {
   found: boolean;
   contractHash: string;
@@ -83,6 +91,12 @@ export const api = {
 
   // Worker directory for issuers. Empty list marshals as null → coerce to [].
   listWorkers: async () => (await req<WorkerDir[] | null>("GET", "/api/workers")) ?? [],
+
+  registerOrg: (b: { name: string; type: "ttc" | "company"; email?: string }) =>
+    req<OrgDir>("POST", "/api/orgs", b),
+
+  listOrgs: async (type?: "ttc" | "company") =>
+    (await req<OrgDir[] | null>("GET", `/api/orgs${type ? `?type=${type}` : ""}`)) ?? [],
 
   issueCredential: (b: {
     schemaId: string;

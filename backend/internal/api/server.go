@@ -36,6 +36,8 @@ func (s *Server) Router() http.Handler {
 	r.Get("/api/health", s.health)
 	r.Get("/api/workers", s.listWorkers)                 // directory for issuers
 	r.Post("/api/workers", s.registerWorker)             // UC1
+	r.Get("/api/orgs", s.listOrgs)                       // training centers / companies
+	r.Post("/api/orgs", s.registerOrg)                   // register a new org
 	r.Post("/api/credentials", s.issueCredential)        // UC2 / UC3 / UC5
 	r.Get("/api/verify/{credHash}", s.verify)            // UC4
 	r.Post("/api/revoke", s.revoke)                      // UC6
@@ -110,6 +112,41 @@ func maskNID(nid string) string {
 	return string(masked)
 }
 
+func (s *Server) listOrgs(w http.ResponseWriter, r *http.Request) {
+	orgs := s.S.ListOrgs(r.URL.Query().Get("type"))
+	writeJSON(w, http.StatusOK, orgs)
+}
+
+type registerOrgReq struct {
+	Name  string `json:"name"`
+	Type  string `json:"type"` // "ttc" | "company"
+	Email string `json:"email"`
+}
+
+func (s *Server) registerOrg(w http.ResponseWriter, r *http.Request) {
+	var req registerOrgReq
+	if err := readJSON(r, &req); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if req.Name == "" || (req.Type != "ttc" && req.Type != "company") {
+		writeErr(w, http.StatusBadRequest, fmt.Errorf("name and a valid type (ttc|company) are required"))
+		return
+	}
+	didStr, docHash, err := did.New(req.Type)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.L.RegisterDID(didStr, docHash); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	org := &store.Org{OrgID: s.S.NextOrgID(req.Type), DID: didStr, Name: req.Name, Type: req.Type, Email: req.Email}
+	s.S.PutOrg(org)
+	writeJSON(w, http.StatusCreated, org)
+}
+
 type registerWorkerReq struct {
 	Name    string `json:"name"`
 	NID     string `json:"nid"`
@@ -124,6 +161,11 @@ func (s *Server) registerWorker(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Name == "" || req.NID == "" {
 		writeErr(w, http.StatusBadRequest, fmt.Errorf("name and nid are required"))
+		return
+	}
+	// A national ID uniquely identifies a person — reject duplicates.
+	if existing, ok := s.S.WorkerByNID(req.NID); ok {
+		writeErr(w, http.StatusConflict, fmt.Errorf("এই জাতীয় পরিচয়পত্র (%s) ইতিমধ্যে %s নামে নিবন্ধিত (%s)", req.NID, existing.Name, existing.WorkerID))
 		return
 	}
 	didStr, docHash, err := did.New("worker")

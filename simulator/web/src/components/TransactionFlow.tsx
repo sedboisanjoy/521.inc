@@ -19,12 +19,14 @@ const EVENT_COLORS: Record<string, string> = {
   DISCLOSURE: "#00b894",
   SYSTEM_OFFLINE: "#e74c3c",
   SYSTEM_ONLINE: "#2ecc71",
+  ATTACK: "#e74c3c", DEFENSE: "#2ecc71", VULNERABILITY: "#f39c12",
 };
 
 const EVENT_ICONS: Record<string, string> = {
   PROPOSAL: "📤", ENDORSEMENT: "✅", ORDERING: "🧱", VALIDATION: "🔍",
   COMMIT: "📦", POLICY_FAIL: "❌", REVOCATION: "🚫", CORROBORATION: "🤝",
   TRUST_DELTA: "⭐", DISCLOSURE: "🔐", SYSTEM_OFFLINE: "🔴", SYSTEM_ONLINE: "🟢",
+  ATTACK: "🗡️", DEFENSE: "🛡️", VULNERABILITY: "❗",
 };
 
 export function TransactionFlow({ events, lastRun }: Props) {

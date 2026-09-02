@@ -131,8 +131,14 @@ func TestCorroboration(t *testing.T) {
 	stub := newEnv()
 
 	_ = c.IssueCredential(ctx(stub, "EmployerMSP"), "wage_001", "WageCredential-v1", "did:key:employer", "did:key:worker1", "")
+	// The corroborating source must be a registered DID (sybil resistance).
+	_ = c.RegisterDID(ctx(stub, "BankMSP"), "did:key:bank", "hashbank")
 	if err := c.SubmitCorroboration(ctx(stub, "BankMSP"), "wage_001", "did:key:bank", "ev1"); err != nil {
 		t.Fatalf("SubmitCorroboration failed: %v", err)
+	}
+	// A source that is NOT registered on-chain cannot corroborate (sybil block).
+	if err := c.SubmitCorroboration(ctx(stub, "BankMSP"), "wage_001", "did:key:sockpuppet", "ev-fake"); err == nil {
+		t.Fatalf("expected corroboration from an unregistered (sybil) source to fail")
 	}
 	// Issuer cannot corroborate its own claim.
 	if err := c.SubmitCorroboration(ctx(stub, "EmployerMSP"), "wage_001", "did:key:employer", "ev2"); err == nil {

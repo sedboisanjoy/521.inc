@@ -2,11 +2,12 @@ import { useState } from "react";
 import { api } from "../api";
 import { useStore } from "../store";
 import { Card, Field, Button, ErrorLine, JsonDetails } from "../ui";
+import { subjectFromActivity } from "../flow";
 
 // Admin / BMET — UC7 (adjust and view issuer/agency trust scores) and UC6
 // (revoke a fraudulent credential).
 export function Admin() {
-  const { session, log, toast } = useStore();
+  const { session, log, toast, openFlow, autoFlow } = useStore();
   const actor = "BMET";
 
   const [agencyDID, setAgencyDID] = useState("did:key:ttc-dhaka");
@@ -28,8 +29,9 @@ export function Admin() {
     try {
       const r = await api.updateStanding({ agencyDID, delta: Number(delta), evidenceHash: "audit-" + Date.now() });
       setScore(r.score);
-      log({ kind: "standing", actor, title: `Standing ${delta >= 0 ? "+" : ""}${delta} → ${r.score}/100`, detail: agencyDID, ok: true });
-      toast("success", `Standing now ${r.score}/100`);
+      const entry = log({ kind: "standing", actor, title: `Trust ${delta >= 0 ? "+" : ""}${delta} → ${r.score}/100`, detail: agencyDID, ok: true });
+      toast("success", `Trust score is now ${r.score}/100`);
+      if (autoFlow) openFlow(subjectFromActivity(entry));
     } catch (e) {
       const m = (e as Error).message;
       setErr1(m);
@@ -45,7 +47,7 @@ export function Admin() {
     try {
       const r = await api.getStanding(agencyDID);
       setScore(r.score);
-      toast("info", `Standing: ${r.score}/100`);
+      toast("info", `Trust score: ${r.score}/100`);
     } catch (e) {
       const m = (e as Error).message;
       setErr1(m);
@@ -61,8 +63,9 @@ export function Admin() {
     try {
       const r = await api.revoke({ credHash, reasonCode: reason });
       setRevOut(r);
-      log({ kind: "revoke", actor, title: `Revoked (${reason})`, detail: credHash, ok: true });
-      toast("success", "Credential revoked on ledger");
+      const entry = log({ kind: "revoke", actor, title: `Revoked (${reason})`, detail: credHash, ok: true });
+      toast("success", "Certificate revoked on the blockchain");
+      if (autoFlow) openFlow(subjectFromActivity(entry));
     } catch (e) {
       const m = (e as Error).message;
       setErr2(m);
@@ -78,18 +81,18 @@ export function Admin() {
     <div className="panel-grid">
       <Card
         title="Trust Score"
-        tag="UC7 · UpdateAgencyStanding"
-        hint="Reputation is derived only from ledger events (clamped 0–100), so it can't be self-asserted."
+        tag="Organization trust"
+        hint="Trust is calculated solely from blockchain events (0–100), so no one can inflate it on their own."
       >
-        <Field label="Agency / issuer DID">
+        <Field label="Organization / issuer ID">
           <input value={agencyDID} onChange={(e) => setAgencyDID(e.target.value)} />
         </Field>
         <div className="row row-end">
-          <Field label="Delta (+ / −)">
+          <Field label="Change (+ / −)">
             <input type="number" value={delta} onChange={(e) => setDelta(Number(e.target.value))} />
           </Field>
           <Button onClick={adjust} busy={busyA}>Apply</Button>
-          <Button onClick={lookup} busy={busyL} variant="ghost">Lookup</Button>
+          <Button onClick={lookup} busy={busyL} variant="ghost">View</Button>
         </div>
         <ErrorLine msg={err1} />
         {score !== null && (
@@ -103,17 +106,17 @@ export function Admin() {
       </Card>
 
       <Card
-        title="Revoke Credential"
-        tag="UC6 · RevokeCredential"
-        hint="Nothing is deleted — the ledger is immutable. Only the status bit flips to REVOKED."
+        title="Revoke Certificate"
+        tag="Fraud revocation"
+        hint="Nothing is deleted — the blockchain is immutable. Only the certificate's status changes to ‘revoked’."
       >
-        <Field label="Credential hash">
-          <input value={credHash} onChange={(e) => setCredHash(e.target.value)} placeholder="did:key:… credential hash" />
+        <Field label="Certificate hash">
+          <input value={credHash} onChange={(e) => setCredHash(e.target.value)} placeholder="Enter certificate hash" />
         </Field>
-        <Field label="Reason code">
+        <Field label="Reason">
           <input value={reason} onChange={(e) => setReason(e.target.value)} />
         </Field>
-        <Button onClick={revoke} busy={busyR} disabled={!credHash} variant="danger">Revoke credential</Button>
+        <Button onClick={revoke} busy={busyR} disabled={!credHash} variant="danger">Revoke Certificate</Button>
         <ErrorLine msg={err2} />
         {revOut && (
           <div className="result">

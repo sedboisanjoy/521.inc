@@ -21,6 +21,17 @@ type Worker struct {
 	PhotoCID string `json:"photoCid,omitempty"` // IPFS pointer in production
 }
 
+// Org is a participating organisation — a training center ("ttc") or an
+// employer/company ("company"). Multiple of each may exist, each with its own
+// DID so trust standing accrues per-organisation.
+type Org struct {
+	OrgID string `json:"orgId"`
+	DID   string `json:"did"`
+	Name  string `json:"name"`
+	Type  string `json:"type"` // "ttc" | "company"
+	Email string `json:"email,omitempty"`
+}
+
 // Credential is the full off-chain credential body (the part kept private). The
 // on-chain anchor references it only by CredHash.
 type Credential struct {
@@ -53,10 +64,13 @@ type Store struct {
 	mu       sync.RWMutex
 	workers  map[string]*Worker     // by workerID
 	byDID    map[string]*Worker     // by DID
+	byNID    map[string]*Worker     // by national ID (uniqueness)
 	creds    map[string]*Credential // by credHash
 	credsBySubject map[string][]string // subjectDID -> credHashes (wallet view)
 	contracts      map[string]*Contract // by contractHash
 	contractsByParty map[string][]string // DID -> contractHashes (worker or employer)
+	orgs     map[string]*Org // by OrgID
+	orgSeq   int
 	seq      int
 }
 
@@ -65,11 +79,48 @@ func New() *Store {
 	return &Store{
 		workers:          map[string]*Worker{},
 		byDID:            map[string]*Worker{},
+		byNID:            map[string]*Worker{},
 		creds:            map[string]*Credential{},
 		credsBySubject:   map[string][]string{},
 		contracts:        map[string]*Contract{},
 		contractsByParty: map[string][]string{},
+		orgs:             map[string]*Org{},
 	}
+}
+
+// NextOrgID returns the next sequential org id (TTC-1001 / CO-1001).
+func (s *Store) NextOrgID(typ string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.orgSeq++
+	prefix := "ORG"
+	if typ == "ttc" {
+		prefix = "TTC"
+	} else if typ == "company" {
+		prefix = "CO"
+	}
+	return prefix + "-" + itoa(1000+s.orgSeq)
+}
+
+// PutOrg stores an organisation record.
+func (s *Store) PutOrg(o *Org) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.orgs[o.OrgID] = o
+}
+
+// ListOrgs returns all orgs of a type (or all if typ is empty), ordered by id.
+func (s *Store) ListOrgs(typ string) []*Org {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]*Org, 0, len(s.orgs))
+	for _, o := range s.orgs {
+		if typ == "" || o.Type == typ {
+			out = append(out, o)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].OrgID < out[j].OrgID })
+	return out
 }
 
 // NextWorkerID returns the next sequential worker id (W-10001, ...).
@@ -102,6 +153,15 @@ func (s *Store) PutWorker(w *Worker) {
 	defer s.mu.Unlock()
 	s.workers[w.WorkerID] = w
 	s.byDID[w.DID] = w
+	s.byNID[w.NID] = w
+}
+
+// WorkerByNID returns a worker by national ID (for duplicate detection).
+func (s *Store) WorkerByNID(nid string) (*Worker, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	w, ok := s.byNID[nid]
+	return w, ok
 }
 
 // GetWorker returns a worker by id.

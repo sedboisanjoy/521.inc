@@ -10,6 +10,7 @@ import {
 } from "react";
 import { api } from "./api";
 import type { Role } from "./roles";
+import type { FlowSubject } from "./flow";
 
 // Shared demo state so the panels chain together across roles: the training
 // center registers a worker (filling the DID), the worker logs in with it, the
@@ -18,12 +19,30 @@ export interface Session {
   did?: string;
   credHash?: string;
   workerName?: string;
+  orgName?: string; // display name of the logged-in training center / company
 }
 
 export type ActivityKind =
   | "register" | "issue" | "verify" | "revoke" | "disclose" | "corroborate" | "standing"
   | "post" | "apply" | "hire"
-  | "contract" | "sign" | "approve";
+  | "contract" | "sign" | "approve"
+  | "report";
+
+// A company's complaint to BMET that a hired worker was not as competent as the
+// certificate (issued by a training center) claimed. BMET acts on it by
+// lowering the issuing training center's trust weight.
+export type ReportStatus = "open" | "resolved";
+export interface Report {
+  id: string;
+  credHash: string;
+  workerName: string;
+  workerDID: string;
+  issuerDID: string; // the training center that issued the certificate
+  company: string;
+  reason: string;
+  status: ReportStatus;
+  at: number;
+}
 
 // A company job opening. Companies post them; workers apply with a credential.
 export interface Job {
@@ -92,7 +111,15 @@ interface Store {
   clearSession: () => void;
 
   activity: Activity[];
-  log: (a: Omit<Activity, "id" | "at">) => void;
+  log: (a: Omit<Activity, "id" | "at">) => Activity;
+
+  // Data-flow visualization: the entry currently being animated (transient),
+  // and a persisted toggle for whether submits auto-open the flow.
+  flowSubject: FlowSubject | null;
+  openFlow: (s: FlowSubject) => void;
+  closeFlow: () => void;
+  autoFlow: boolean;
+  setAutoFlow: (v: boolean) => void;
 
   jobs: Job[];
   applications: Application[];
@@ -104,6 +131,10 @@ interface Store {
   // drafting panel (not persisted).
   contractDraft: ContractDraft | null;
   setContractDraft: (d: ContractDraft | null) => void;
+
+  reports: Report[];
+  fileReport: (r: Omit<Report, "id" | "at" | "status">) => Report;
+  setReport: (id: string, patch: Partial<Report>) => void;
 
   toasts: Toast[];
   toast: (kind: ToastKind, message: string) => void;
@@ -141,8 +172,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>(() => load<Job[]>("ep_jobs", []));
   const [applications, setApplications] = useState<Application[]>(() => load<Application[]>("ep_apps", []));
   const [contractDraft, setContractDraft] = useState<ContractDraft | null>(null);
+  const [reports, setReports] = useState<Report[]>(() => load<Report[]>("ep_reports", []));
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [health, setHealth] = useState<Health>("checking");
+  const [flowSubject, setFlowSubject] = useState<FlowSubject | null>(null);
+  const [autoFlow, setAutoFlowState] = useState<boolean>(() => load<boolean>("ep_autoflow", true));
   const timers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
   const login = useCallback((r: Role, did?: string) => {
@@ -178,8 +212,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     save("ep_session", {});
   }, []);
 
-  const log = useCallback((a: Omit<Activity, "id" | "at">) => {
-    setActivity((list) => [{ ...a, id: seq++, at: Date.now() }, ...list].slice(0, 50));
+  const log = useCallback((a: Omit<Activity, "id" | "at">): Activity => {
+    const entry: Activity = { ...a, id: seq++, at: Date.now() };
+    setActivity((list) => [entry, ...list].slice(0, 50));
+    return entry;
+  }, []);
+
+  const openFlow = useCallback((s: FlowSubject) => setFlowSubject(s), []);
+  const closeFlow = useCallback(() => setFlowSubject(null), []);
+  const setAutoFlow = useCallback((v: boolean) => {
+    setAutoFlowState(v);
+    save("ep_autoflow", v);
   }, []);
 
   const postJob = useCallback((j: Omit<Job, "id" | "createdAt">) => {
@@ -211,6 +254,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setApplications((list) => {
       const next = list.map((x) => (x.id === id ? { ...x, ...patch } : x));
       save("ep_apps", next);
+      return next;
+    });
+  }, []);
+
+  const fileReport = useCallback((r: Omit<Report, "id" | "at" | "status">) => {
+    const report: Report = { ...r, id: `rep_${Date.now()}_${seq++}`, status: "open", at: Date.now() };
+    setReports((list) => {
+      const next = [report, ...list];
+      save("ep_reports", next);
+      return next;
+    });
+    return report;
+  }, []);
+
+  const setReport = useCallback((id: string, patch: Partial<Report>) => {
+    setReports((list) => {
+      const next = list.map((x) => (x.id === id ? { ...x, ...patch } : x));
+      save("ep_reports", next);
       return next;
     });
   }, []);
@@ -256,11 +317,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       role, identityDID, login, logout,
       session, setSession, clearSession,
       activity, log,
+      flowSubject, openFlow, closeFlow, autoFlow, setAutoFlow,
       jobs, applications, postJob, applyToJob, setApplication,
       contractDraft, setContractDraft,
+      reports, fileReport, setReport,
       toasts, toast, dismiss, health,
     }),
-    [role, identityDID, login, logout, session, setSession, clearSession, activity, log, jobs, applications, postJob, applyToJob, setApplication, contractDraft, toasts, toast, dismiss, health]
+    [role, identityDID, login, logout, session, setSession, clearSession, activity, log, flowSubject, openFlow, closeFlow, autoFlow, setAutoFlow, jobs, applications, postJob, applyToJob, setApplication, contractDraft, reports, fileReport, setReport, toasts, toast, dismiss, health]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

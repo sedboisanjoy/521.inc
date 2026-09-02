@@ -283,6 +283,21 @@ func (c *EmploymentContract) SubmitCorroboration(ctx contractapi.TransactionCont
 	if sourceDID == cred.IssuerDID {
 		return fmt.Errorf("issuer cannot corroborate its own credential")
 	}
+	// Sybil-resistance: a corroboration only counts if the source is a DID
+	// actually registered on-chain. Without this, the score could be inflated
+	// with invented (sock-puppet) source DIDs.
+	srcKey, err := key(ctx, objDID, sourceDID)
+	if err != nil {
+		return err
+	}
+	var srcRecord DIDRecord
+	registered, err := getJSON(ctx, srcKey, &srcRecord)
+	if err != nil {
+		return err
+	}
+	if !registered {
+		return fmt.Errorf("source %s is not a registered DID", sourceDID)
+	}
 	for _, existing := range cred.Corroborations {
 		if existing.SourceDID == sourceDID {
 			return fmt.Errorf("source %s has already corroborated this credential", sourceDID)

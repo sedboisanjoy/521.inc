@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { SystemStatusBanner } from "./components/SystemStatus";
+import { FlowMap } from "./components/FlowMap";
 import { NetworkTopology } from "./components/NetworkTopology";
 import { ScenarioRunner } from "./components/ScenarioRunner";
 import { TransactionFlow } from "./components/TransactionFlow";
@@ -7,17 +8,18 @@ import { TrustDashboard } from "./components/TrustDashboard";
 import { api } from "./api";
 import type { SystemStatus, Topology, RunResult, Scenario } from "./types";
 
-type Tab = "network" | "scenarios" | "flow" | "trust";
+type Tab = "live" | "scenarios" | "flow" | "network" | "trust";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "network", label: "Network Topology", icon: "🔗" },
+  { id: "live", label: "Live Flow", icon: "🔗" },
   { id: "scenarios", label: "Scenario Runner", icon: "▶️" },
-  { id: "flow", label: "Transaction Flow", icon: "📊" },
+  { id: "flow", label: "Event Timeline", icon: "📊" },
+  { id: "network", label: "Static Topology", icon: "🗺️" },
   { id: "trust", label: "Trust Dashboard", icon: "⭐" },
 ];
 
 export function App() {
-  const [tab, setTab] = useState<Tab>("network");
+  const [tab, setTab] = useState<Tab>("live");
   const [sysStatus, setSysStatus] = useState<SystemStatus | null>(null);
   const [topology, setTopology] = useState<Topology | null>(null);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
@@ -57,7 +59,7 @@ export function App() {
       // Force topology refresh
       const topo = await api.topology();
       setTopology(topo.topology);
-      setTab("flow");
+      setTab("live"); // watch it animate across the network graph
     } catch (err) {
       alert("Failed to run scenario: " + (err as Error).message);
     } finally {
@@ -82,7 +84,7 @@ export function App() {
 
       <header className="app-header">
         <h1>🛂 Employment Passport — Control Flow Simulator</h1>
-        <span className="subtitle">Blockchain Olympiad Bangladesh 2026 · Team 404_found_us</span>
+        <span className="subtitle">Blockchain Olympiad Bangladesh 2026 · Team CHEATro_GUPTO</span>
       </header>
 
       <nav className="tab-nav">
@@ -99,6 +101,9 @@ export function App() {
       </nav>
 
       <main className="app-main">
+        {tab === "live" && topology && (
+          <FlowMap topo={topology} events={events} lastRun={lastRun} scenarios={scenarios} onTogglePeer={togglePeer} />
+        )}
         {tab === "network" && topology && (
           <NetworkTopology topo={topology} onTogglePeer={togglePeer} />
         )}

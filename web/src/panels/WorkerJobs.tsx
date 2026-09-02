@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { api, type WalletEntry } from "../api";
 import { useStore } from "../store";
 import { Card, Button, ErrorLine } from "../ui";
+import { Icon } from "../icons";
+import { subjectFromActivity } from "../flow";
 
 // Worker — browse open job postings and apply, attaching a skill certificate
 // from the wallet. The company will verify that certificate before hiring.
 export function WorkerJobs() {
-  const { jobs, applications, applyToJob, identityDID, session, log, toast } = useStore();
+  const { jobs, applications, applyToJob, identityDID, session, log, toast, openFlow, autoFlow } = useStore();
   const myDID = identityDID || session.did || "";
   const myName = session.workerName || "Worker";
 
@@ -28,31 +30,32 @@ export function WorkerJobs() {
 
   function apply(jobId: string) {
     const credHash = picks[jobId] || creds[0]?.credHash;
-    if (!credHash) return toast("error", "You have no certificate to present yet.");
+    if (!credHash) return toast("error", "You don't have any certificate yet.");
     const created = applyToJob({ jobId, workerDID: myDID, workerName: myName, credHash });
-    if (!created) return toast("info", "You already applied to this job.");
+    if (!created) return toast("info", "You have already applied to this job.");
     const job = jobs.find((j) => j.id === jobId);
-    log({ kind: "apply", actor: "Worker", title: `Applied to ${job?.title}`, detail: `${myName} → ${job?.company}`, ok: true });
+    const entry = log({ kind: "apply", actor: "Worker", title: `Application: ${job?.title}`, detail: `${myName} → ${job?.company}`, ok: true });
     toast("success", `Application sent to ${job?.company}`);
+    if (autoFlow) openFlow(subjectFromActivity(entry));
   }
 
   return (
     <Card
       title="Open Jobs"
-      tag="marketplace"
-      hint="Apply with one of your certificates. The employer verifies it on-chain before making an offer."
+      tag="Job Marketplace"
+      hint="Apply using one of your certificates. The company will verify it on the blockchain before hiring."
     >
       <ErrorLine msg={err} />
       {creds.length === 0 && (
         <div className="banner" style={{ margin: "0 0 16px" }}>
-          You have no certificates yet — a training center must certify a skill for your DID before you can apply.
+          You don't have any certificate yet — before applying, a training center must issue you a skill certificate.
         </div>
       )}
 
       {jobs.length === 0 ? (
         <div className="empty">
-          <div className="empty-ico">🧳</div>
-          No open jobs right now. Companies post openings from their portal.
+          <div className="empty-ico"><Icon name="briefcase" size={28} /></div>
+          There are no open jobs right now. Companies post job openings from their portal.
         </div>
       ) : (
         <div className="job-list">
@@ -63,12 +66,12 @@ export function WorkerJobs() {
                 <div className="job-head">
                   <div>
                     <div className="job-title">{j.title}</div>
-                    <div className="job-company">🏢 {j.company} · 📍 {j.location}</div>
+                    <div className="job-company">{j.company} · {j.location}</div>
                   </div>
                   <div className="job-wage">{j.wage.toLocaleString()} <span>BDT</span></div>
                 </div>
                 <div className="job-tags">
-                  <span className="claim"><span className="claim-k">skill</span><span className="claim-v">{j.skill}</span></span>
+                  <span className="claim"><span className="claim-k">Skill</span><span className="claim-v">{j.skill}</span></span>
                 </div>
                 {applied ? (
                   <div className="job-applied">✓ Applied</div>
@@ -81,7 +84,7 @@ export function WorkerJobs() {
                     >
                       {creds.map((c) => (
                         <option key={c.credHash} value={c.credHash}>
-                          {c.schemaId} · {String(c.claims.trade ?? "")} · {c.credHash.slice(0, 8)}…
+                          {String(c.claims.trade ?? "")} · {c.credHash.slice(0, 8)}…
                         </option>
                       ))}
                     </select>

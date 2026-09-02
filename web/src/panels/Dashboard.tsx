@@ -1,20 +1,15 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api, type WorkerDir, type OrgDir } from "../api";
 import { useStore, type ActivityKind } from "../store";
+import { Icon } from "../icons";
+import { subjectFromActivity } from "../flow";
+import { Panel } from "../arwes";
 
-const KIND_META: Record<ActivityKind, { icon: string; label: string }> = {
-  register: { icon: "🪪", label: "Worker registered" },
-  issue: { icon: "📜", label: "Credential issued" },
-  verify: { icon: "🔍", label: "Anchor verified" },
-  revoke: { icon: "⛔", label: "Credential revoked" },
-  disclose: { icon: "🕶", label: "Selective disclosure" },
-  corroborate: { icon: "🤝", label: "Corroboration" },
-  standing: { icon: "📊", label: "Trust score updated" },
-  post: { icon: "📋", label: "Job posted" },
-  apply: { icon: "📨", label: "Job application" },
-  hire: { icon: "🎉", label: "Worker hired" },
-  contract: { icon: "📄", label: "Contract drafted" },
-  sign: { icon: "✍️", label: "Worker signed contract" },
-  approve: { icon: "🤝", label: "Contract approved" },
+const KIND_ICON: Record<ActivityKind, string> = {
+  register: "userPlus", issue: "certificate", verify: "search", revoke: "ban",
+  disclose: "eyeOff", corroborate: "check", standing: "chart", post: "clipboard",
+  apply: "inbox", hire: "check", contract: "document", sign: "pen", approve: "check",
+  report: "alert",
 };
 
 function timeAgo(ts: number): string {
@@ -26,67 +21,113 @@ function timeAgo(ts: number): string {
   return `${Math.floor(m / 60)}h ago`;
 }
 
-// BMET's regulator overview — a read-only window on everything happening across
-// the network, plus quick access to governance.
+// BMET regulator overview — reads real registered workers + participants from
+// the backend, plus a live activity feed.
 export function Dashboard({ goToGovernance }: { goToGovernance: () => void }) {
-  const { activity } = useStore();
+  const { activity, openFlow } = useStore();
+  const [workers, setWorkers] = useState<WorkerDir[]>([]);
+  const [orgs, setOrgs] = useState<OrgDir[]>([]);
+  const [err, setErr] = useState("");
 
-  const stats = useMemo(() => {
-    const count = (k: ActivityKind) => activity.filter((a) => a.kind === k && a.ok).length;
-    return {
-      workers: count("register"),
-      issued: count("issue"),
-      verified: count("verify"),
-      revoked: count("revoke"),
-    };
-  }, [activity]);
+  async function load() {
+    setErr("");
+    try {
+      const [w, o] = await Promise.all([api.listWorkers(), api.listOrgs()]);
+      setWorkers(w);
+      setOrgs(o);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+  useEffect(() => {
+    load();
+    const iv = setInterval(load, 5000); // keep the registry fresh
+    return () => clearInterval(iv);
+  }, []);
+
+  const ttcCount = orgs.filter((o) => o.type === "ttc").length;
+  const companyCount = orgs.filter((o) => o.type === "company").length;
+  const issued = useMemo(() => activity.filter((a) => a.kind === "issue" && a.ok).length, [activity]);
 
   return (
     <>
       <div className="stat-grid">
-        <Stat label="Workers registered" value={stats.workers} icon="🪪" />
-        <Stat label="Credentials issued" value={stats.issued} icon="📜" />
-        <Stat label="Verifications" value={stats.verified} icon="🔍" />
-        <Stat label="Revocations" value={stats.revoked} icon="⛔" tone="danger" />
+        <Stat label="Registered Workers" value={workers.length} icon="worker" />
+        <Stat label="Training Centers" value={ttcCount} icon="school" />
+        <Stat label="Companies" value={companyCount} icon="building" />
+        <Stat label="Certificates Issued" value={issued} icon="certificate" />
       </div>
 
       <div className="dash-cols">
-        <section className="card">
+        <Panel className="card">
           <div className="card-head">
-            <h2>Credential lifecycle</h2>
-            <span className="tag">7 use cases</span>
+            <h2>Participating Organizations</h2>
+            <span className="tag">{orgs.length}</span>
           </div>
-          <p className="hint">
-            As regulator, BMET observes the whole flow but only acts at governance points.
-          </p>
-          <ol className="steps steps-static">
-            <li><span className="step-n">1</span><div><div className="step-title">Training center registers a worker</div><div className="step-body">A DID is minted; PII stays off-chain.</div></div></li>
-            <li><span className="step-n">2</span><div><div className="step-title">Skill / wage credential is issued</div><div className="step-body">Only a salted hash is anchored.</div></div></li>
-            <li><span className="step-n">3</span><div><div className="step-title">Employer verifies & workers disclose</div><div className="step-body">Claims proven without revealing values.</div></div></li>
-            <li><span className="step-n">4</span><div><div className="step-title">BMET governs trust & revokes fraud</div><div className="step-body">Reputation derived from ledger events.</div></div></li>
-          </ol>
-          <button className="btn btn-primary" onClick={goToGovernance}>Open Governance →</button>
-        </section>
+          {orgs.length === 0 ? (
+            <div className="empty">
+              <div className="empty-ico"><Icon name="building" size={28} /></div>
+              No training centers or companies have registered yet.
+            </div>
+          ) : (
+            <div className="party-list">
+              {orgs.map((o) => (
+                <div key={o.did} className="party">
+                  <span className="party-ico"><Icon name={o.type === "ttc" ? "school" : "building"} size={20} /></span>
+                  <div className="party-body">
+                    <div className="party-name">{o.name} <span className="dir-id">{o.orgId}</span></div>
+                    <div className="party-did mono">{o.did}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-        <section className="card">
+          <div className="card-head" style={{ marginTop: 18 }}>
+            <h2>Registered Workers</h2>
+            <span className="tag">{workers.length}</span>
+          </div>
+          {err && <div className="err">⚠ {err}</div>}
+          {workers.length === 0 ? (
+            <div className="empty">
+              <div className="empty-ico"><Icon name="users" size={28} /></div>
+              No workers have registered yet.
+            </div>
+          ) : (
+            <div className="worker-list">
+              {workers.map((w) => (
+                <div key={w.did} className="worker-row">
+                  <span className="dir-avatar">{w.name.charAt(0).toUpperCase()}</span>
+                  <div className="worker-info">
+                    <div className="worker-name">{w.name} <span className="dir-id">{w.workerId}</span></div>
+                    <div className="worker-meta mono">NID {w.nidMasked}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={goToGovernance}>Open Governance →</button>
+        </Panel>
+
+        <Panel className="card">
           <div className="card-head">
-            <h2>Network activity</h2>
-            <span className="tag">{activity.length} events</span>
+            <h2>Recent Activity</h2>
+            <span className="tag">{activity.length}</span>
           </div>
           {activity.length === 0 ? (
             <div className="empty">
-              <div className="empty-ico">🗒</div>
-              No activity yet this session — events from every portal will stream in here.
+              <div className="empty-ico"><Icon name="grid" size={28} /></div>
+              No activity yet — events from every portal will appear here.
             </div>
           ) : (
             <ul className="feed">
               {activity.map((a) => (
-                <li key={a.id} className={a.ok ? "" : "feed-err"}>
-                  <span className="feed-ico">{KIND_META[a.kind].icon}</span>
+                <li key={a.id} className={`feed-click ${a.ok ? "" : "feed-err"}`} onClick={() => openFlow(subjectFromActivity(a))} title="View data flow">
+                  <span className="feed-ico"><Icon name={KIND_ICON[a.kind]} size={17} /></span>
                   <div className="feed-body">
                     <div className="feed-title">
                       {a.title}
-                      {!a.ok && <span className="feed-fail">failed</span>}
+                      {!a.ok && <span className="feed-fail">Failed</span>}
                     </div>
                     <div className="feed-detail">
                       <span className="feed-actor">{a.actor}</span>
@@ -98,16 +139,16 @@ export function Dashboard({ goToGovernance }: { goToGovernance: () => void }) {
               ))}
             </ul>
           )}
-        </section>
+        </Panel>
       </div>
     </>
   );
 }
 
-function Stat({ label, value, icon, tone }: { label: string; value: number; icon: string; tone?: "danger" }) {
+function Stat({ label, value, icon }: { label: string; value: number; icon: string }) {
   return (
-    <div className={`stat ${tone === "danger" && value > 0 ? "stat-danger" : ""}`}>
-      <div className="stat-ico">{icon}</div>
+    <div className="stat">
+      <div className="stat-ico"><Icon name={icon} size={20} /></div>
       <div className="stat-val">{value}</div>
       <div className="stat-label">{label}</div>
     </div>

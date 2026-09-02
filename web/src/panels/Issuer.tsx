@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { api, type WorkerDir } from "../api";
 import { useStore } from "../store";
 import { Card, Field, Button, ErrorLine, JsonDetails, Copy } from "../ui";
+import { Icon } from "../icons";
+import { subjectFromActivity } from "../flow";
 
 // Training Center portal — its sole power is to certify a worker's skill. A
 // skill certificate records the trade, competency level and assessment score
 // only. Wage and employer are NOT here: they belong to the hiring stage (the
 // company sets the wage on its job posting), not to a training certificate.
 export function Issuer() {
-  const { session, setSession, log, toast, identityDID } = useStore();
+  const { session, setSession, log, toast, identityDID, openFlow, autoFlow } = useStore();
   const actor = "Training Center";
   const schemaId = "SkillCredential-v1";
 
@@ -54,13 +56,15 @@ export function Issuer() {
       });
       setCredOut(r);
       setSession({ credHash: r.credHash });
-      log({ kind: "issue", actor, title: `Certified ${trade} (L${level})`, detail: r.credHash, ok: true });
-      toast("success", "Certificate anchored on the ledger");
+      const entry = log({ kind: "issue", actor, title: `Certificate: ${trade} (level ${level})`, detail: r.credHash, ok: true });
+      toast("success", "Certificate anchored on the blockchain");
+      if (autoFlow) openFlow(subjectFromActivity(entry));
     } catch (e) {
       const m = (e as Error).message;
       setErr(m);
-      log({ kind: "issue", actor, title: `Issue ${schemaId}`, detail: m, ok: false });
+      const entry = log({ kind: "issue", actor, title: `Failed to issue certificate`, detail: m, ok: false });
       toast("error", m);
+      if (autoFlow) openFlow(subjectFromActivity(entry));
     } finally {
       setBusy(false);
     }
@@ -70,30 +74,30 @@ export function Issuer() {
     <div className="panel-narrow">
       <Card
         title="Issue Skill Certificate"
-        tag="UC2 · IssueCredential"
-        hint="Certify a skill for a worker you've trained. Only a salted hash is written on-chain — the certificate body stays off-ledger."
+        tag="Step 1"
+        hint="Issue a skill certificate to a worker you have trained. Only a private hash goes to the blockchain — the certificate details stay off-chain."
       >
         <div className="issuer-id">
-          <span>Issuing as</span>
+          <span>Issuer</span>
           <Copy value={issuerDID} short />
         </div>
 
         <div className="dir">
           <div className="dir-head">
             <label style={{ margin: 0 }}>Select the worker to certify</label>
-            <button className="dir-refresh" onClick={loadWorkers} title="Refresh directory">↻ Refresh</button>
+            <button className="dir-refresh" onClick={loadWorkers} title="Refresh">↻ Refresh</button>
           </div>
           <input
             className="dir-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, ID or DID…"
+            placeholder="Search by name or ID…"
           />
           <ErrorLine msg={dirErr} />
           {workers.length === 0 ? (
             <div className="empty" style={{ marginTop: 10 }}>
-              <div className="empty-ico">👥</div>
-              No workers registered yet — a worker signs up from the login screen first.
+              <div className="empty-ico"><Icon name="users" size={28} /></div>
+              No workers have registered yet — a worker must first register from the login page.
             </div>
           ) : (
             <div className="dir-list">
@@ -112,11 +116,11 @@ export function Issuer() {
                   <span className="dir-nid">NID {w.nidMasked}</span>
                 </button>
               ))}
-              {filtered.length === 0 && <div className="hint" style={{ padding: "8px 2px" }}>No match for “{query}”.</div>}
+              {filtered.length === 0 && <div className="hint" style={{ padding: "8px 2px" }}>“{query}” not found.</div>}
             </div>
           )}
           {selected && (
-            <div className="dir-selected">Certifying <strong>{selected.name}</strong> · <span className="mono">{selected.did.slice(0, 24)}…</span></div>
+            <div className="dir-selected">Certifying <strong>{selected.name}</strong></div>
           )}
         </div>
 
@@ -125,15 +129,15 @@ export function Issuer() {
             className="dir-paste"
             value={subjectDID}
             onChange={(e) => setSubjectDID(e.target.value)}
-            placeholder="…or paste a DID directly"
+            placeholder="…or enter an ID directly"
           />
         )}
 
-        <Field label="Trade / skill certified">
+        <Field label="Trade / skill being certified">
           <input value={trade} onChange={(e) => setTrade(e.target.value)} />
         </Field>
         <div className="row">
-          <Field label="Competency level (1–5)">
+          <Field label="Skill level (1–5)">
             <input type="number" min={1} max={5} value={level} onChange={(e) => setLevel(Number(e.target.value))} />
           </Field>
           <Field label="Assessment score (%)">
@@ -141,7 +145,7 @@ export function Issuer() {
           </Field>
         </div>
 
-        <Button onClick={issue} busy={busy} disabled={!subjectDID.trim()}>Issue certificate</Button>
+        <Button onClick={issue} busy={busy} disabled={!subjectDID.trim()}>Issue Certificate</Button>
         <ErrorLine msg={err} />
         {credOut && (
           <div className="result">
@@ -150,8 +154,14 @@ export function Issuer() {
               <Copy value={credOut.credHash} short />
             </div>
             <p className="hint" style={{ margin: "6px 0 0" }}>
-              The worker now holds this in their wallet and can apply to jobs with it.
+              The worker will now find this in their certificate list and can use it to apply for jobs.
             </p>
+            <Button
+              variant="ghost"
+              onClick={() => openFlow({ kind: "issue", actor, detail: credOut.credHash, ok: true, label: `Certificate: ${trade}` })}
+            >
+              <Icon name="flow" size={16} /> View data flow
+            </Button>
             <JsonDetails data={credOut} />
           </div>
         )}
