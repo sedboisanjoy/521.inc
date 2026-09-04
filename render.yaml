@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: employment-passport
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: LEDGER_MODE
+        value: mock

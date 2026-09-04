@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cheatro-gupto/employment-passport/backend/internal/api"
@@ -25,12 +27,30 @@ func main() {
 	srv.Bootstrap() // register fixed actor DIDs (bank, ministry, rjsc, bfiu, …)
 	httpServer := &http.Server{
 		Addr:         addr,
-		Handler:      srv.Router(),
+		Handler:      appHandler(srv.Router()),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 20 * time.Second,
 	}
 	log.Printf("employment-passport backend listening on %s (LEDGER_MODE=%s)", addr, envOr("LEDGER_MODE", "mock"))
 	log.Fatal(httpServer.ListenAndServe())
+}
+
+func appHandler(apiHandler http.Handler) http.Handler {
+	staticDir := envOr("STATIC_DIR", "../web/dist")
+	files := http.FileServer(http.Dir(staticDir))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			apiHandler.ServeHTTP(w, r)
+			return
+		}
+		path := filepath.Join(staticDir, filepath.Clean(r.URL.Path))
+		if info, err := os.Stat(path); err == nil && !info.IsDir() {
+			files.ServeHTTP(w, r)
+			return
+		}
+		r.URL.Path = "/"
+		files.ServeHTTP(w, r)
+	})
 }
 
 func buildLedger() ledger.Ledger {
