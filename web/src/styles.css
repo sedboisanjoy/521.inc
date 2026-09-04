@@ -7,7 +7,7 @@
   --line: #163a52;
   --line-soft: #0f2436;
   --accent: #00eaff;          /* neon cyan */
-  --accent-2: #ff2ea6;        /* neon magenta */
+  --accent-2: #f6e005;        /* cyberpunk yellow (CP2077) */
   --accent-ink: #74f7ff;
   --accent-soft: rgba(0, 234, 255, 0.12);
   --green: #23ff9c;           /* neon green */
@@ -23,7 +23,7 @@
   --shadow: 0 0 0 1px rgba(0, 234, 255, 0.05), 0 18px 44px rgba(0, 0, 0, 0.55);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --glow-cyan: 0 0 12px rgba(0, 234, 255, 0.55);
-  --glow-magenta: 0 0 12px rgba(255, 46, 166, 0.5);
+  --glow-gold: 0 0 14px rgba(246, 224, 5, 0.55);
   --font-mono: "Courier New", Courier, "Lucida Console", "DejaVu Sans Mono", monospace;
 }
 
@@ -36,7 +36,7 @@ body {
   color: var(--text);
   background:
     radial-gradient(1100px 560px at 100% -18%, rgba(0, 234, 255, 0.10), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(255, 46, 166, 0.09), transparent 58%),
+    radial-gradient(900px 500px at -10% 110%, rgba(246, 224, 5, 0.09), transparent 58%),
     linear-gradient(rgba(0, 234, 255, 0.028) 1px, transparent 1px) 0 0 / 100% 34px,
     linear-gradient(90deg, rgba(0, 234, 255, 0.028) 1px, transparent 1px) 0 0 / 34px 100%,
     var(--bg);
@@ -606,7 +606,7 @@ pre {
 .phase-offchain { --pc: #ffcf1a; }
 .phase-propose  { --pc: #00eaff; }
 .phase-endorse  { --pc: #23ff9c; }
-.phase-order    { --pc: #b26bff; }
+.phase-order    { --pc: #2f6bff; }
 .phase-validate { --pc: #ff8a1a; }
 .phase-commit   { --pc: #2dffe0; }
 .phase-read     { --pc: #45d4ff; }
@@ -813,7 +813,7 @@ h1 { color: var(--text); text-shadow: 0 0 10px rgba(0, 234, 255, 0.25); }
 .btn-ghost { background: transparent; border: 1px solid var(--accent); color: var(--accent-ink); }
 .btn-ghost:hover:not(:disabled) { background: var(--accent-soft); box-shadow: var(--glow-cyan); }
 .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
-.btn-danger:hover:not(:disabled) { background: var(--red-soft); box-shadow: var(--glow-magenta); }
+.btn-danger:hover:not(:disabled) { background: var(--red-soft); box-shadow: 0 0 14px rgba(255, 59, 107, 0.55); }
 
 /* --- Inputs ------------------------------------------------------------ */
 input, select, textarea {
@@ -862,7 +862,7 @@ input::placeholder, textarea::placeholder { color: var(--muted-2); }
   content: ""; position: absolute; inset: 0;
   background:
     radial-gradient(600px 300px at 80% 0%, rgba(0, 234, 255, 0.18), transparent 60%),
-    radial-gradient(500px 260px at 0% 100%, rgba(255, 46, 166, 0.16), transparent 60%),
+    radial-gradient(500px 260px at 0% 100%, rgba(246, 224, 5, 0.14), transparent 60%),
     linear-gradient(rgba(0, 234, 255, 0.05) 1px, transparent 1px) 0 0 / 100% 30px,
     linear-gradient(90deg, rgba(0, 234, 255, 0.05) 1px, transparent 1px) 0 0 / 30px 100%;
   pointer-events: none;
@@ -895,7 +895,7 @@ input::placeholder, textarea::placeholder { color: var(--muted-2); }
 body {
   background:
     radial-gradient(1100px 560px at 100% -18%, rgba(0, 234, 255, 0.10), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(255, 46, 166, 0.09), transparent 58%),
+    radial-gradient(900px 500px at -10% 110%, rgba(246, 224, 5, 0.09), transparent 58%),
     var(--bg);
 }
 
@@ -917,14 +917,14 @@ body {
 .btn-frame { z-index: 0; }
 .btn-ghost { --arwes-frames-line-color: hsla(187, 100%, 55%, 0.7); }
 .btn-danger { --arwes-frames-line-color: hsla(345, 100%, 62%, 0.75); }
-.btn-primary { --arwes-frames-line-color: hsla(320, 100%, 62%, 0.6); }
+.btn-primary { --arwes-frames-line-color: hsla(54, 100%, 50%, 0.6); }
 
 /* Flow dialog gets an Arwes corner frame behind its content. */
 .flow-dialog {
   position: relative;
   --arwes-frames-bg-color: hsla(210, 60%, 6%, 0.9);
   --arwes-frames-line-color: hsla(187, 100%, 55%, 0.6);
-  --arwes-frames-deco-color: hsla(320, 100%, 62%, 0.75);
+  --arwes-frames-deco-color: hsla(54, 100%, 55%, 0.75);
 }
 .flow-frame { z-index: 0; }
 .flow-dialog-inner { position: relative; z-index: 1; }
@@ -969,3 +969,292 @@ input, select, textarea { font-size: 15.5px; }
 .flow-seg { font-size: 13.5px; }
 .flow-node-label { font-size: 13px; }
 .flow-node-ico svg { width: 22px; height: 22px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CYBERPUNK BOOST — chromatic headings, glitch, moving scanline, glow, vignette
+   (loaded last — wins the cascade)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Chromatic-aberration glow on the big headings (cyan + CP2077 yellow split). */
+.topbar h1, .brand-name, .login-headline, .flow-title {
+  text-shadow:
+    -1px 0 2px rgba(0, 234, 255, 0.55),
+     1px 0 2px rgba(246, 224, 5, 0.45),
+     0 0 14px rgba(0, 234, 255, 0.35);
+}
+
+/* Occasional glitch jitter on the brand wordmark. */
+.brand-name { animation: cp-glitch 6s steps(1) infinite; }
+@keyframes cp-glitch {
+  0%, 92%, 100% { transform: translate(0, 0); text-shadow: -1px 0 2px rgba(0,234,255,0.55), 1px 0 2px rgba(246,224,5,0.45), 0 0 14px rgba(0,234,255,0.35); }
+  93% { transform: translate(-1.5px, 0); text-shadow: 2px 0 rgba(255,59,107,0.7), -2px 0 rgba(0,234,255,0.7); }
+  95% { transform: translate(1.5px, 0); text-shadow: -2px 0 rgba(246,224,5,0.7), 2px 0 rgba(0,234,255,0.7); }
+  97% { transform: translate(-1px, 0); text-shadow: 2px 0 rgba(0,234,255,0.7), -2px 0 rgba(255,59,107,0.6); }
+}
+
+/* Subtle neon flicker on stat numbers + connection dot. */
+.stat-val { animation: cp-flicker 4.5s infinite; }
+@keyframes cp-flicker {
+  0%, 100% { opacity: 1; } 47% { opacity: 1; } 48% { opacity: 0.72; }
+  49% { opacity: 1; } 71% { opacity: 1; } 72% { opacity: 0.82; } 73% { opacity: 1; }
+}
+
+/* A bright scanline sweeping down the screen. */
+body::before {
+  content: "";
+  position: fixed; left: 0; right: 0; top: 0; height: 28%; z-index: 3; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(0, 234, 255, 0.05) 60%, rgba(0, 234, 255, 0.09));
+  mix-blend-mode: screen;
+  animation: cp-sweep 7s linear infinite;
+}
+@keyframes cp-sweep {
+  0% { transform: translateY(-120%); }
+  100% { transform: translateY(460%); }
+}
+
+/* Edge vignette so the neon reads brighter toward the centre. */
+.layout::after, .login::after {
+  content: ""; position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  box-shadow: inset 0 0 220px rgba(0, 0, 0, 0.65), inset 0 0 60px rgba(0, 0, 0, 0.35);
+}
+
+/* Neon inner-glow on Arwes card frames + a lift on hover. */
+.card.arwes-panel { position: relative; transition: filter 0.18s; }
+.card.arwes-panel::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  box-shadow: inset 0 0 26px rgba(0, 234, 255, 0.05);
+}
+.card.arwes-panel:hover { filter: drop-shadow(0 0 8px rgba(0, 234, 255, 0.28)); }
+
+/* Nav + primary accents get a stronger neon halo. */
+.nav-item.active { box-shadow: inset 2px 0 0 var(--accent), 0 0 16px rgba(0, 234, 255, 0.28); }
+.btn-primary:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0, 234, 255, 0.7), 0 0 30px rgba(246, 224, 5, 0.35); }
+.stat-val { text-shadow: 0 0 14px rgba(0, 234, 255, 0.6), 0 0 4px rgba(246, 224, 5, 0.35); }
+
+/* Uppercase tracking bump for extra HUD feel on section titles. */
+.card-head h2 { letter-spacing: 0.12em; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CYBERPUNK BOOST II — HUD corner brackets, film grain, caret, nav sweep
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Neon HUD brackets in the four viewport corners (cyan top, yellow bottom). */
+.layout::before, .login::before {
+  content: ""; position: fixed; inset: 10px; z-index: 5; pointer-events: none;
+  --cy: rgba(0, 234, 255, 0.6); --yl: rgba(246, 224, 5, 0.6); --L: 30px; --T: 2px;
+  background:
+    linear-gradient(var(--cy), var(--cy)) top left / var(--L) var(--T),
+    linear-gradient(var(--cy), var(--cy)) top left / var(--T) var(--L),
+    linear-gradient(var(--cy), var(--cy)) top right / var(--L) var(--T),
+    linear-gradient(var(--cy), var(--cy)) top right / var(--T) var(--L),
+    linear-gradient(var(--yl), var(--yl)) bottom left / var(--L) var(--T),
+    linear-gradient(var(--yl), var(--yl)) bottom left / var(--T) var(--L),
+    linear-gradient(var(--yl), var(--yl)) bottom right / var(--L) var(--T),
+    linear-gradient(var(--yl), var(--yl)) bottom right / var(--T) var(--L);
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 4px rgba(0, 234, 255, 0.5));
+}
+
+/* Fine film grain over everything for CRT texture. */
+#root::after {
+  content: ""; position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: cp-grain 0.6s steps(2) infinite;
+}
+@keyframes cp-grain {
+  0% { transform: translate(0, 0); } 50% { transform: translate(-3px, 2px); } 100% { transform: translate(2px, -2px); }
+}
+
+/* Blinking terminal caret after the page title. */
+.topbar h1::after {
+  content: "▮"; margin-left: 0.16em; color: var(--accent);
+  text-shadow: 0 0 8px var(--accent); animation: cp-blink 1.1s steps(1) infinite;
+}
+@keyframes cp-blink { 50% { opacity: 0; } }
+
+/* HUD marker before every card / section title. */
+.card-head h2::before { content: "▸ "; color: var(--accent); text-shadow: 0 0 6px var(--accent); }
+
+/* Scan-sweep highlight when hovering a nav item. */
+.nav-item { position: relative; overflow: hidden; }
+.nav-item::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(0, 234, 255, 0.14), transparent);
+  transform: translateX(-100%);
+}
+.nav-item:hover::before { animation: cp-nav-sweep 0.6s ease; }
+@keyframes cp-nav-sweep { to { transform: translateX(100%); } }
+.nav-ico, .nav-text { position: relative; z-index: 1; }
+
+/* Data-stream tick marks down the sidebar edge. */
+.sidebar { position: relative; }
+.sidebar::after {
+  content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 2px; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(0, 234, 255, 0.5) 0 6px, transparent 6px 16px);
+  opacity: 0.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CYBERPUNK BOOST III — Orbitron display headings, notched corners, sheen
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root { --font-display: "Orbitron", "Courier New", monospace; }
+
+/* Futuristic display face on headings / HUD labels (body stays Courier New). */
+.brand-name, .topbar h1, .card-head h2, .login-headline, .flow-title,
+.stat-val, .role-name, .role-full, .who-name, .nav-label,
+.flow-policy-head, .creds-key, .card-head h2, .seg button {
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+}
+.topbar h1, .login-headline, .flow-title { font-weight: 900; letter-spacing: 0.11em; }
+.stat-val { font-weight: 900; }
+.brand-name { font-size: 15px; letter-spacing: 0.1em; }
+.nav-label { font-size: 14.5px; }
+
+/* Angular notched (chamfered) corners — signature cyberpunk silhouette. */
+.btn {
+  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+}
+.badge, .tag, .session-chip, .flow-chip, .flow-tag, .conn, .creds {
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.seg button { clip-path: polygon(7px 0, 100% 0, 100% 100%, 0 100%, 0 7px); }
+
+/* Holographic sheen sweeps across a card on hover. */
+.card.arwes-panel > .arwes-panel-body { overflow: hidden; }
+.card.arwes-panel > .arwes-panel-body::before {
+  content: ""; position: absolute; top: 0; left: 0; width: 55%; height: 100%; z-index: 2;
+  pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(105deg, transparent, rgba(0, 234, 255, 0.10) 45%, rgba(246, 224, 5, 0.06) 55%, transparent);
+  transform: translateX(-180%) skewX(-14deg);
+}
+.card.arwes-panel:hover > .arwes-panel-body::before { animation: cp-sheen 0.9s ease; }
+@keyframes cp-sheen { to { transform: translateX(240%) skewX(-14deg); } }
+
+/* Login headline: animated neon gradient text. */
+.login-headline {
+  background: linear-gradient(100deg, var(--accent), var(--accent-2), var(--accent));
+  background-size: 220% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: cp-hue 5s linear infinite;
+}
+@keyframes cp-hue { to { background-position: 220% center; } }
+
+/* ═══ §3.8 — Agency accountability (attested vs asserted, standing, allegations) ═══ */
+.col-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
+.col-tag-attested { color: var(--green); }
+.col-tag-asserted { color: var(--accent-2); }
+
+.attested-block, .asserted-block { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+
+.check-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  background: var(--panel-2); border: 1px solid var(--line-soft); border-radius: 8px; margin-bottom: 6px;
+  cursor: pointer;
+}
+.check-row:hover { border-color: var(--line); }
+.check-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+.check-main { flex: 1; font-size: 13px; color: var(--text); }
+.check-main strong { color: var(--accent-ink); }
+
+/* Two-column attested / asserted split on an application card */
+.split-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.split-col { padding: 10px; border-radius: 10px; border: 1px solid var(--line-soft); background: var(--panel-2); }
+.split-col-attested { border-left: 3px solid var(--green); }
+.split-col-asserted { border-left: 3px solid var(--accent-2); }
+@media (max-width: 720px) { .split-cols { grid-template-columns: 1fr; } }
+
+.attref { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+.attref-main { flex: 1; display: flex; flex-direction: column; gap: 2px; color: var(--text); }
+.attref-ico { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: #04121a; font-size: 12px; font-weight: 800; }
+.attref-ok .attref-ico { background: var(--green); }
+.attref-no .attref-ico { background: var(--red); }
+
+.applicant-flagged { border-color: rgba(255, 59, 107, 0.45); box-shadow: 0 0 0 1px rgba(255, 59, 107, 0.25) inset; }
+
+/* Agency standing pills + line */
+.agency-standing-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0 4px; }
+.standing-pill {
+  font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--panel-2); letter-spacing: 0.02em;
+}
+.standing-pill.score-good { color: var(--green); border-color: rgba(35, 255, 156, 0.45); }
+.standing-pill.score-mid { color: var(--amber); border-color: rgba(255, 207, 26, 0.45); }
+.standing-pill.score-bad { color: var(--red); border-color: rgba(255, 59, 107, 0.45); }
+
+/* Big score readout on the agency's own standing card */
+.big-score { font-family: var(--font-display, inherit); font-size: 46px; font-weight: 900; line-height: 1; margin: 4px 0 12px; }
+.big-score-max { font-size: 18px; color: var(--muted-2); font-weight: 600; }
+.big-score.score-good { color: var(--green); text-shadow: 0 0 16px rgba(35, 255, 156, 0.4); }
+.big-score.score-mid { color: var(--amber); }
+.big-score.score-bad { color: var(--red); text-shadow: 0 0 16px rgba(255, 59, 107, 0.4); }
+.score-note { font-size: 14px; color: var(--muted-2); font-weight: 600; }
+
+/* Allegation dual-signature pills */
+.endorse-row { display: flex; gap: 10px; margin: 8px 0; }
+.sig-pill {
+  flex: 1; text-align: center; font-size: 12.5px; font-weight: 700; padding: 6px 8px;
+  border-radius: 8px; border: 1px dashed var(--line); color: var(--muted); background: var(--panel-2);
+}
+.sig-pill.sig-on { border-style: solid; border-color: var(--green); color: var(--green); background: var(--green-soft); }
+
+.section-sep {
+  margin: 18px 0 10px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted-2); border-top: 1px solid var(--line-soft); padding-top: 12px;
+}
+
+/* Attested credential row: type shown, private claim values sealed from the agency */
+.check-main { display: flex; flex-direction: column; gap: 2px; }
+.check-sub { font-size: 11px; color: var(--muted-2); font-style: italic; }
+
+/* Ministry: machine-readable reason a signal escalated (auditable, policy-grade) */
+.escalation-why {
+  display: flex; flex-direction: column; gap: 3px;
+  margin: 6px 0; padding: 8px 10px; border-radius: 8px;
+  background: var(--panel-2); border-left: 3px solid var(--accent-2); font-size: 12.5px; color: var(--text);
+}
+
+/* ═══ Flow viz — render every actor + livelier animation ═══════════════ */
+/* Staggered node assemble (opacity only on the <g> so the translate stays intact) */
+.flow-node { animation: flow-node-in .5s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes flow-node-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Node body pops in, then pops again when it becomes the active hop */
+.flow-node-bg { transform-box: fill-box; transform-origin: center; animation: flow-bg-in .5s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes flow-bg-in { from { transform: scale(.3); } to { transform: scale(1); } }
+.flow-node.active .flow-node-bg {
+  fill: var(--accent-soft); stroke: var(--accent);
+  filter: drop-shadow(0 0 9px var(--accent));
+  animation: flow-bg-pop .55s ease;
+}
+@keyframes flow-bg-pop { 0% { transform: scale(1); } 45% { transform: scale(1.2); } 100% { transform: scale(1.08); } }
+
+.flow-node-ico { transform-box: fill-box; transform-origin: center; }
+.flow-node.active .flow-node-ico { animation: flow-ico-pop .55s ease; }
+@keyframes flow-ico-pop { 0%,100% { transform: scale(1); } 50% { transform: scale(1.28); } }
+
+/* Two staggered pulse rings on the active node */
+.flow-pulse { stroke-width: 2.5; opacity: .85; }
+.flow-pulse-2 { animation-delay: .55s; }
+
+/* Animated "current flowing" trail for the live hop */
+.flow-trail { stroke-width: 3.5; opacity: .9; stroke-dasharray: 11 9; animation: flow-trail-move .55s linear infinite; }
+@keyframes flow-trail-move { to { stroke-dashoffset: -20; } }
+
+/* Guide links gently drift so the graph feels alive */
+.flow-link { animation: flow-link-drift 6s linear infinite; }
+@keyframes flow-link-drift { to { stroke-dashoffset: -16; } }
+
+/* Packet: bright core + expanding halo (comet energy) */
+.flow-packet-core { fill: var(--pc, var(--accent)); filter: drop-shadow(0 0 9px var(--pc, var(--accent))); }
+.flow-packet.offchain .flow-packet-core { fill: #0e1420; stroke: var(--pc, var(--amber)); stroke-width: 2.5; }
+.flow-packet-halo { fill: var(--pc, var(--accent)); opacity: .35; transform-box: fill-box; transform-origin: center; animation: flow-halo 1s ease-out infinite; }
+.flow-packet.offchain .flow-packet-halo { fill: var(--pc, var(--amber)); }
+@keyframes flow-halo { 0% { transform: scale(.7); opacity: .5; } 100% { transform: scale(2.7); opacity: 0; } }

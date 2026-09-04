@@ -10,6 +10,12 @@ const KIND_ICON: Record<ActivityKind, string> = {
   disclose: "eyeOff", corroborate: "check", standing: "chart", post: "clipboard",
   apply: "inbox", hire: "check", contract: "document", sign: "pen", approve: "check",
   report: "alert",
+  employ_proof: "document", review: "review", wage: "wage", wage_cosign: "wage",
+  violation: "alert", inspection: "gavel", endorse: "endorse", dispute: "ban",
+  company_reg: "registry", ubo: "ubo", procurement: "procurement", match: "search",
+  wagebill: "chart",
+  application: "users", contradiction: "alert", allege: "gavel", respond: "pen",
+  resolve: "check", licence: "certificate",
 };
 
 function timeAgo(ts: number): string {

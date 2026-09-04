@@ -20,6 +20,21 @@ import { Reports } from "./panels/Reports";
 import { Admin } from "./panels/Admin";
 import { FlowExplorer } from "./panels/FlowExplorer";
 import { FlowViz } from "./FlowViz";
+import { WorkerReviews } from "./panels/WorkerReviews";
+import { EmployerOps } from "./panels/EmployerOps";
+import { CompanyTransparency } from "./panels/CompanyTransparency";
+import { EmployerEndorse } from "./panels/EmployerEndorse";
+import { EmployerSearch } from "./panels/EmployerSearch";
+import { BankWages } from "./panels/BankWages";
+import { BankIncome } from "./panels/BankIncome";
+import { MinistryEnforcement } from "./panels/MinistryEnforcement";
+import { RjscRegistry } from "./panels/RjscRegistry";
+import { BfiuUBO } from "./panels/BfiuUBO";
+import { AgencySubmit } from "./panels/AgencySubmit";
+import { AgencyStanding } from "./panels/AgencyStanding";
+import { EmployerAgencyApps } from "./panels/EmployerAgencyApps";
+import { BmetLicensing } from "./panels/BmetLicensing";
+import { BmetAllegations } from "./panels/BmetAllegations";
 
 function Shell() {
   const { role, identityDID, logout, session, clearSession, health, flowSubject, closeFlow, autoFlow, setAutoFlow } = useStore();
@@ -133,6 +148,21 @@ function Shell() {
             {tab === "reports" && <Reports />}
             {tab === "admin" && <Admin />}
             {tab === "flow" && <FlowExplorer />}
+            {tab === "wreviews" && <WorkerReviews />}
+            {tab === "ops" && <EmployerOps />}
+            {tab === "profile" && <CompanyTransparency />}
+            {tab === "endorse" && <EmployerEndorse />}
+            {tab === "search" && <EmployerSearch />}
+            {tab === "bankwages" && <BankWages />}
+            {tab === "bankincome" && <BankIncome />}
+            {tab === "enforcement" && <MinistryEnforcement />}
+            {tab === "registry" && <RjscRegistry />}
+            {tab === "ubo" && <BfiuUBO />}
+            {tab === "agsubmit" && <AgencySubmit />}
+            {tab === "agstanding" && <AgencyStanding />}
+            {tab === "agapplicants" && <EmployerAgencyApps goTo={setTab} />}
+            {tab === "aglicensing" && <BmetLicensing />}
+            {tab === "allegations" && <BmetAllegations />}
           </main>
         </Animator>
       </div>

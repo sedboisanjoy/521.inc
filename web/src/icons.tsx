@@ -3,6 +3,14 @@ import type { ReactNode } from "react";
 // A small, consistent line-icon set (stroke = currentColor) that replaces emoji
 // across the app for a professional, OS-independent look.
 const P: Record<string, ReactNode> = {
+  agency: (
+    <>
+      <path d="M3 21h18" />
+      <path d="M5 21V7l7-4 7 4v14" />
+      <path d="M9 21v-5h6v5" />
+      <path d="M9 9h2M13 9h2M9 12.5h2M13 12.5h2" />
+    </>
+  ),
   passport: (
     <>
       <rect x="5" y="2.5" width="14" height="19" rx="2.5" />
@@ -178,6 +186,71 @@ const P: Record<string, ReactNode> = {
       <circle cx="19" cy="12" r="2" />
       <path d="M7 6h4a3 3 0 0 1 3 3v0M7 18h4a3 3 0 0 0 3-3v0" />
       <path d="M16.5 12H14" />
+    </>
+  ),
+  bank: (
+    <>
+      <path d="M3 9l9-5 9 5" />
+      <path d="M4 9h16v2H4z" />
+      <path d="M6 11v7M10 11v7M14 11v7M18 11v7" />
+      <path d="M3 20h18" />
+    </>
+  ),
+  gavel: (
+    <>
+      <path d="M13 5l6 6" />
+      <path d="M9.5 8.5l6 6" />
+      <path d="M8 7l4-4 5 5-4 4-5-5Z" />
+      <path d="M11 12l-6 6 2 2 6-6" />
+      <path d="M3 21h8" />
+    </>
+  ),
+  registry: (
+    <>
+      <rect x="5" y="3" width="14" height="18" rx="1.5" />
+      <path d="M9 3v18" />
+      <path d="M12 7h4M12 11h4M12 15h4" />
+    </>
+  ),
+  aml: (
+    <>
+      <path d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3Z" />
+      <circle cx="11" cy="11" r="2.4" />
+      <path d="M13 13l2.5 2.5" />
+    </>
+  ),
+  review: (
+    <>
+      <path d="M4 5h16v10H9l-4 4V5Z" />
+      <path d="M12 8.5l1 2 2 .2-1.5 1.4.4 2-1.9-1-1.9 1 .4-2L9 10.7l2-.2 1-2Z" />
+    </>
+  ),
+  wage: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7v10" />
+      <path d="M14.5 9.2c-.6-.8-1.6-1.2-2.7-1.2-1.5 0-2.6.8-2.6 2s1 1.7 2.6 2 2.6.9 2.6 2.1-1.1 2-2.6 2c-1.2 0-2.2-.5-2.8-1.3" />
+    </>
+  ),
+  endorse: (
+    <>
+      <path d="M7 11v9H4v-9h3Z" />
+      <path d="M7 12l3-7a2 2 0 0 1 2 2v3h5.5a2 2 0 0 1 2 2.3l-1 6A2 2 0 0 1 16.5 20H7" />
+    </>
+  ),
+  procurement: (
+    <>
+      <path d="M4 7h16l-1.5 12.5a1 1 0 0 1-1 .9H6.5a1 1 0 0 1-1-.9L4 7Z" />
+      <path d="M8 7V5a4 4 0 0 1 8 0v2" />
+      <path d="M9.5 12.5l2 2 3.5-3.5" />
+    </>
+  ),
+  ubo: (
+    <>
+      <circle cx="12" cy="6" r="2.5" />
+      <circle cx="6" cy="17" r="2.5" />
+      <circle cx="18" cy="17" r="2.5" />
+      <path d="M12 8.5v3M12 11.5L7.5 15M12 11.5L16.5 15" />
     </>
   ),
 };

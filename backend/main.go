@@ -22,6 +22,7 @@ func main() {
 	defer l.Close()
 
 	srv := &api.Server{L: l, S: store.New()}
+	srv.Bootstrap() // register fixed actor DIDs (bank, ministry, rjsc, bfiu, …)
 	httpServer := &http.Server{
 		Addr:         addr,
 		Handler:      srv.Router(),

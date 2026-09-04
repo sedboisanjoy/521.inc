@@ -34,8 +34,8 @@ export function Login() {
 
   const def = ROLES[role];
   const isWorker = role === "worker";
-  const isOrg = role === "ttc" || role === "employer";
-  const orgType: "ttc" | "company" = role === "ttc" ? "ttc" : "company";
+  const isOrg = role === "ttc" || role === "employer" || role === "agency";
+  const orgType: "ttc" | "company" | "agency" = role === "ttc" ? "ttc" : role === "agency" ? "agency" : "company";
 
   useEffect(() => {
     setPassword("");
@@ -106,7 +106,8 @@ export function Login() {
     toast("success", `Signed in as ${def.short}`);
   }
 
-  const newLabel = isWorker ? "New Worker" : role === "ttc" ? "New Center" : "New Company";
+  const newLabel = isWorker ? "New Worker" : role === "ttc" ? "New Center" : role === "agency" ? "New Agency" : "New Company";
+  const orgNoun = role === "ttc" ? "Training center" : role === "agency" ? "Agency" : "Company";
 
   return (
     <Animator active manager="stagger">
@@ -186,8 +187,8 @@ export function Login() {
           ) : mode === "signup" && isOrg ? (
             <>
               <div className="field">
-                <label>{role === "ttc" ? "Training center name" : "Company name"}</label>
-                <input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder={role === "ttc" ? "e.g. Dhaka Technical Center" : "e.g. Gulf Construction"} />
+                <label>{orgNoun} name</label>
+                <input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder={role === "ttc" ? "e.g. Dhaka Technical Center" : role === "agency" ? "e.g. Prime Recruitment Ltd" : "e.g. Gulf Construction"} />
               </div>
               <div className="field">
                 <label>Email (optional)</label>
@@ -210,7 +211,7 @@ export function Login() {
             </div>
           ) : isOrg ? (
             <div className="field">
-              <label>{role === "ttc" ? "Your training center" : "Your company"}</label>
+              <label>Your {orgNoun.toLowerCase()}</label>
               {orgs.length > 0 ? (
                 <select value={username} onChange={(e) => setUsername(e.target.value)}>
                   <option value="">— Select —</option>
@@ -256,7 +257,7 @@ export function Login() {
 
           <div className="creds">
             <span className="creds-key">Demo details</span>
-            {role === "bmet" && (
+            {!isWorker && !isOrg && (
               <div className="creds-row">
                 <span>Email</span>
                 <code>{def.user}</code>

@@ -26,7 +26,12 @@ export type ActivityKind =
   | "register" | "issue" | "verify" | "revoke" | "disclose" | "corroborate" | "standing"
   | "post" | "apply" | "hire"
   | "contract" | "sign" | "approve"
-  | "report";
+  | "report"
+  // §3.1 additions
+  | "employ_proof" | "review" | "wage" | "wage_cosign" | "violation" | "inspection"
+  | "endorse" | "dispute" | "company_reg" | "ubo" | "procurement" | "match" | "wagebill"
+  // §3.8 agency accountability additions
+  | "application" | "contradiction" | "allege" | "respond" | "resolve" | "licence";
 
 // A company's complaint to BMET that a hired worker was not as competent as the
 // certificate (issued by a training center) claimed. BMET acts on it by

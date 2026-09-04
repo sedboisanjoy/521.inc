@@ -1,6 +1,6 @@
 import { type CSSProperties, type ReactNode } from "react";
 import { AnimatorGeneralProvider, Animator } from "@arwes/react-animator";
-import { Dots, GridLines } from "@arwes/react-bgs";
+import { Dots, GridLines, MovingLines } from "@arwes/react-bgs";
 import { FrameOctagon, FrameCorners } from "@arwes/react-frames";
 
 // Thin integration layer over Arwes so the rest of the app doesn't wire raw
@@ -8,18 +8,18 @@ import { FrameOctagon, FrameCorners } from "@arwes/react-frames";
 // Arwes frame CSS variables (--arwes-frames-*), so the sci-fi chrome matches
 // the cyberpunk palette already in styles.css.
 
-// Frame colour presets (cyan by default, magenta/green/red for variants).
+// Frame colour presets (cyan by default, gold/green/red for variants).
 type FrameVars = Record<"--arwes-frames-bg-color" | "--arwes-frames-line-color" | "--arwes-frames-deco-color", string>;
 
-export const FRAME_COLORS: Record<"cyan" | "magenta" | "green" | "red", FrameVars> = {
+export const FRAME_COLORS: Record<"cyan" | "gold" | "green" | "red", FrameVars> = {
   cyan: {
     "--arwes-frames-bg-color": "hsla(187, 100%, 45%, 0.05)",
     "--arwes-frames-line-color": "hsla(187, 100%, 55%, 0.6)",
-    "--arwes-frames-deco-color": "hsla(320, 100%, 62%, 0.75)",
+    "--arwes-frames-deco-color": "hsla(54, 100%, 55%, 0.75)",
   },
-  magenta: {
-    "--arwes-frames-bg-color": "hsla(320, 100%, 55%, 0.05)",
-    "--arwes-frames-line-color": "hsla(320, 100%, 62%, 0.65)",
+  gold: {
+    "--arwes-frames-bg-color": "hsla(54, 100%, 50%, 0.05)",
+    "--arwes-frames-line-color": "hsla(54, 100%, 55%, 0.65)",
     "--arwes-frames-deco-color": "hsla(187, 100%, 55%, 0.75)",
   },
   green: {
@@ -30,7 +30,7 @@ export const FRAME_COLORS: Record<"cyan" | "magenta" | "green" | "red", FrameVar
   red: {
     "--arwes-frames-bg-color": "hsla(345, 100%, 55%, 0.06)",
     "--arwes-frames-line-color": "hsla(345, 100%, 62%, 0.65)",
-    "--arwes-frames-deco-color": "hsla(320, 100%, 62%, 0.7)",
+    "--arwes-frames-deco-color": "hsla(54, 100%, 55%, 0.7)",
   },
 };
 
@@ -51,8 +51,9 @@ export function ArwesBackground() {
   return (
     <Animator active duration={{ enter: 1.2 }}>
       <div className="arwes-bg" aria-hidden="true">
-        <GridLines lineColor="hsla(300, 100%, 60%, 0.05)" distance={38} />
-        <Dots color="hsla(187, 100%, 55%, 0.18)" type="cross" distance={38} size={2} />
+        <GridLines lineColor="hsla(54, 100%, 55%, 0.045)" distance={38} />
+        <MovingLines lineColor="hsla(187, 100%, 55%, 0.07)" distance={44} sets={12} />
+        <Dots color="hsla(187, 100%, 55%, 0.2)" type="cross" distance={38} size={2} />
       </div>
     </Animator>
   );

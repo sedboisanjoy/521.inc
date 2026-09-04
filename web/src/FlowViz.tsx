@@ -16,19 +16,28 @@ const PHASE_BN: Record<FlowPhase, string> = {
   penalty: "PENALTY",
 };
 
-// The nodes we draw, in a fixed order so the rail reads top→bottom / left→right.
-const RAIL: FlowActor[] = ["client", "vault", "ttc", "company", "bmet", "orderer", "peers", "ledger"];
-
-// Light guide links so the rail reads as a network (purely decorative).
-const LINKS: [FlowActor, FlowActor][] = [
-  ["client", "vault"], ["client", "ttc"], ["client", "company"], ["client", "orderer"],
-  ["ttc", "company"], ["company", "bmet"], ["orderer", "peers"], ["orderer", "bmet"],
-  ["peers", "ledger"], ["bmet", "ledger"],
-];
-
 export function FlowViz({ subject, onClose }: { subject: FlowSubject; onClose: () => void }) {
   const plan = useMemo(() => flowFor(subject), [subject]);
   const steps = plan.steps;
+
+  // Render exactly the actors this operation touches — so agency / bank /
+  // ministry / rjsc / bfiu appear whenever a flow uses them — connected by the
+  // actual hops the packet takes (the topology of THIS operation, not a fixed map).
+  const usedActors = useMemo(() => {
+    const seen = new Set<FlowActor>();
+    const order: FlowActor[] = [];
+    for (const st of steps) for (const a of [st.from, st.to]) if (!seen.has(a)) { seen.add(a); order.push(a); }
+    return order;
+  }, [steps]);
+  const links = useMemo(() => {
+    const seen = new Set<string>();
+    const out: [FlowActor, FlowActor][] = [];
+    for (const st of steps) {
+      const k = [st.from, st.to].slice().sort().join("|");
+      if (!seen.has(k)) { seen.add(k); out.push([st.from, st.to]); }
+    }
+    return out;
+  }, [steps]);
 
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -105,7 +114,7 @@ export function FlowViz({ subject, onClose }: { subject: FlowSubject; onClose: (
         <div className="flow-stage">
           {/* Network rail */}
           <svg className="flow-svg" viewBox="0 0 640 380" preserveAspectRatio="xMidYMid meet">
-            {LINKS.map(([a, b], i) => {
+            {links.map(([a, b], i) => {
               const p = ACTORS[a], q = ACTORS[b];
               return <line key={i} className="flow-link" x1={p.x} y1={p.y} x2={q.x} y2={q.y} />;
             })}
@@ -113,18 +122,20 @@ export function FlowViz({ subject, onClose }: { subject: FlowSubject; onClose: (
             {/* Trail line for the current hop */}
             {cur && (
               <line
+                key={`trail-${idx}`}
                 className={`flow-trail phase-${cur.phase}`}
                 x1={ACTORS[cur.from].x} y1={ACTORS[cur.from].y}
                 x2={ACTORS[cur.to].x} y2={ACTORS[cur.to].y}
               />
             )}
 
-            {RAIL.map((key) => {
+            {usedActors.map((key, i) => {
               const a = ACTORS[key];
               const active = activeNodes.has(key);
               return (
-                <g key={key} className={`flow-node ${active ? "active" : ""} ${a.offchain ? "offchain" : ""}`} transform={`translate(${a.x},${a.y})`}>
+                <g key={key} className={`flow-node ${active ? "active" : ""} ${a.offchain ? "offchain" : ""}`} transform={`translate(${a.x},${a.y})`} style={{ animationDelay: `${i * 55}ms` }}>
                   {active && <circle className="flow-pulse" r={30} />}
+                  {active && <circle className="flow-pulse flow-pulse-2" r={30} />}
                   <circle className="flow-node-bg" r={22} />
                   <text className="flow-node-label" y={40} textAnchor="middle">{a.label}</text>
                 </g>
@@ -132,7 +143,7 @@ export function FlowViz({ subject, onClose }: { subject: FlowSubject; onClose: (
             })}
 
             {/* Actor icons via foreignObject so we reuse the app Icon set */}
-            {RAIL.map((key) => {
+            {usedActors.map((key) => {
               const a = ACTORS[key];
               return (
                 <foreignObject key={`ic-${key}`} x={a.x - 12} y={a.y - 12} width={24} height={24} style={{ pointerEvents: "none" }}>
@@ -143,12 +154,13 @@ export function FlowViz({ subject, onClose }: { subject: FlowSubject; onClose: (
               );
             })}
 
-            {/* Travelling packet */}
+            {/* Travelling packet — core + pulsing halo (comet energy) */}
             <g
               className={`flow-packet ${cur ? `phase-${cur.phase}` : ""} ${cur && !cur.onChain ? "offchain" : ""}`}
               style={{ transform: `translate(${pkt.x}px, ${pkt.y}px)`, transition: pkt.anim ? `transform ${1.0 / speed}s cubic-bezier(.5,0,.2,1)` : "none" }}
             >
-              <circle r={9} />
+              <circle className="flow-packet-halo" r={9} />
+              <circle className="flow-packet-core" r={9} />
             </g>
           </svg>
 
